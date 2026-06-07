@@ -52,17 +52,15 @@ async()=>{
 
 if(!file){
 
-alert(
-"Choose PDF first"
-);
+alert("Choose PDF first");
 
 return;
 
 }
 
-results.innerHTML = "";
+results.innerHTML="";
 
-status.innerHTML =
+status.innerHTML=
 "Loading PDF...";
 
 try{
@@ -77,7 +75,7 @@ data:buffer
 })
 .promise;
 
-let count = 0;
+let count=0;
 
 for(
 let p=1;
@@ -86,52 +84,95 @@ p++
 ){
 
 status.innerHTML =
-`Checking page ${p}/${pdf.numPages}`;
+`Rendering page ${p}/${pdf.numPages}`;
 
 const page =
 await pdf.getPage(p);
 
-const opList =
-await page.getOperatorList();
+const viewport =
+page.getViewport({
+scale:2
+});
 
-for(
-let i=0;
-i<opList.fnArray.length;
-i++
-){
+const canvas =
+document.createElement(
+"canvas"
+);
 
-if(
-opList.fnArray[i] === 85
-){
+const ctx =
+canvas.getContext("2d");
+
+canvas.width =
+viewport.width;
+
+canvas.height =
+viewport.height;
+
+await page.render({
+canvasContext:ctx,
+viewport:viewport
+}).promise;
 
 count++;
 
-const div =
-document.createElement("div");
+const card =
+document.createElement(
+"div"
+);
 
-div.className =
+card.className =
 "card";
 
-div.innerHTML =
-`
-<h3>
-Image ${count}
-</h3>
-<p>
-Embedded image found
-</p>
-`;
+const img =
+document.createElement(
+"img"
+);
 
-results.appendChild(div);
+img.src =
+canvas.toDataURL(
+"image/png"
+);
 
-}
+img.download =
+`Image_${count}.png`;
 
-}
+const link =
+document.createElement(
+"a"
+);
+
+link.href =
+img.src;
+
+link.download =
+`Image_${count}.png`;
+
+link.innerText =
+"Download PNG";
+
+card.innerHTML =
+`<h3>Page ${p}</h3>`;
+
+card.appendChild(
+img
+);
+
+card.appendChild(
+document.createElement("br")
+);
+
+card.appendChild(
+link
+);
+
+results.appendChild(
+card
+);
 
 }
 
 status.innerHTML =
-`Done. Found ${count} embedded images.`;
+`Done. Generated ${count} images.`;
 
 }
 catch(err){
