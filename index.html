@@ -1,51 +1,121 @@
 <!DOCTYPE html>
 <html>
+
 <head>
+
 <meta charset="UTF-8">
-<title>Offline PDF Image Extractor</title>
+
+<title>
+PDF Image Extractor
+</title>
 
 <style>
+
 body{
+
 font-family:Arial;
+max-width:900px;
+margin:auto;
 padding:40px;
 text-align:center;
+
 }
 
-#dropzone{
+h1{
+
+margin-bottom:40px;
+
+}
+
+#drop{
+
 border:3px dashed gray;
-padding:50px;
-margin-top:20px;
+padding:60px;
+font-size:22px;
 cursor:pointer;
+border-radius:10px;
+
 }
 
 button{
-padding:12px 20px;
-margin-top:20px;
-font-size:16px;
+
+padding:15px 25px;
+font-size:18px;
+margin-top:25px;
+cursor:pointer;
+
 }
+
+#status{
+
+margin-top:20px;
+font-size:18px;
+
+}
+
+#results{
+
+margin-top:40px;
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:20px;
+
+}
+
+.card{
+
+border:1px solid #ccc;
+padding:10px;
+width:220px;
+
+}
+
+.card img{
+
+max-width:200px;
+
+}
+
 </style>
 
 </head>
 
 <body>
 
-<h1>PDF Image Extractor</h1>
+<h1>
 
-<div id="dropzone">
-Drop PDF here
+PDF Image Extractor
+
+</h1>
+
+<div id="drop">
+
+Click Here To Select PDF
+
 </div>
+
+<input
+type="file"
+id="pdfInput"
+accept=".pdf"
+style="display:none;"
+>
 
 <br>
 
-<button id="extractBtn">
+<button id="extract">
+
 Extract Images
+
 </button>
 
-<p id="status"></p>
+<div id="status"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+<div id="results"></div>
 
 <script type="module" src="app.js"></script>
 
 </body>
+
 </html>
