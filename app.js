@@ -31,7 +31,7 @@ document
 
 if(!file){
 
-alert("Choose PDF first");
+alert("Choose PDF");
 
 return;
 
@@ -49,9 +49,11 @@ data:buffer
 })
 .promise;
 
-let imgCount=0;
-
-for(let p=1;p<=pdf.numPages;p++){
+for(
+let p=1;
+p<=pdf.numPages;
+p++
+){
 
 status.innerHTML=
 `Scanning page ${p}/${pdf.numPages}`;
@@ -61,7 +63,7 @@ await pdf.getPage(p);
 
 const viewport=
 page.getViewport({
-scale:2
+scale:2.5
 });
 
 const canvas=
@@ -81,7 +83,7 @@ canvasContext:ctx,
 viewport:viewport
 }).promise;
 
-const imgData=
+const img=
 ctx.getImageData(
 0,
 0,
@@ -89,13 +91,25 @@ canvas.width,
 canvas.height
 );
 
-const data=
-imgData.data;
+const d=img.data;
 
-let minX=canvas.width;
-let minY=canvas.height;
-let maxX=0;
-let maxY=0;
+const visited=
+new Uint8Array(
+canvas.width*
+canvas.height
+);
+
+let imgNum=1;
+
+function bright(i){
+
+return (
+d[i]+
+d[i+1]+
+d[i+2]
+)/3;
+
+}
 
 for(
 let y=0;
@@ -109,97 +123,193 @@ x<canvas.width;
 x++
 ){
 
-const i=
-(y*canvas.width+x)*4;
-
-const brightness=
-(
-data[i]+
-data[i+1]+
-data[i+2]
-)/3;
-
-if(brightness<240){
-
-if(x<minX)minX=x;
-if(y<minY)minY=y;
-
-if(x>maxX)maxX=x;
-if(y>maxY)maxY=y;
-
-}
-
-}
-
-}
-
-const width=
-maxX-minX;
-
-const height=
-maxY-minY;
+const idx=
+y*canvas.width+x;
 
 if(
-width>100 &&
-height>100
+visited[idx]
+) continue;
+
+visited[idx]=1;
+
+const pixel=
+idx*4;
+
+if(
+bright(pixel)>230
+) continue;
+
+let q=[[x,y]];
+
+let minX=x;
+let maxX=x;
+
+let minY=y;
+let maxY=y;
+
+let count=0;
+
+while(q.length){
+
+const [cx,cy]=q.pop();
+
+count++;
+
+const neigh=[
+
+[cx+1,cy],
+[cx-1,cy],
+[cx,cy+1],
+[cx,cy-1]
+
+];
+
+for(
+const [nx,ny]
+of neigh
 ){
+
+if(
+nx<0||
+ny<0||
+nx>=canvas.width||
+ny>=canvas.height
+) continue;
+
+const ni=
+ny*canvas.width+nx;
+
+if(
+visited[ni]
+) continue;
+
+visited[ni]=1;
+
+const p4=
+ni*4;
+
+if(
+bright(p4)>230
+) continue;
+
+if(nx<minX)minX=nx;
+if(nx>maxX)maxX=nx;
+
+if(ny<minY)minY=ny;
+if(ny>maxY)maxY=ny;
+
+q.push([nx,ny]);
+
+}
+
+}
+
+const w=maxX-minX;
+const h=maxY-minY;
+
+if(
+
+w<120 ||
+h<120 ||
+
+w/h>8 ||
+
+count<5000
+
+){
+
+continue;
+
+}
 
 const crop=
 document.createElement(
 "canvas"
 );
 
-crop.width=width;
-crop.height=height;
+crop.width=w;
+
+crop.height=h;
 
 crop
 .getContext("2d")
 .drawImage(
+
 canvas,
+
 minX,
 minY,
-width,
-height,
+
+w,
+h,
+
 0,
 0,
-width,
-height
+
+w,
+h
+
 );
 
-imgCount++;
-
-const div=
+const card=
 document.createElement(
 "div"
 );
 
-div.className="card";
+card.className=
+"card";
 
-const img=
+const image=
 document.createElement(
 "img"
 );
 
-img.src=
+image.src=
 crop.toDataURL(
 "image/png"
 );
 
-img.style.maxWidth=
+image.style.maxWidth=
 "220px";
 
-div.innerHTML=
-`<h3>Image ${imgCount}</h3>`;
+const link=
+document.createElement(
+"a"
+);
 
-div.appendChild(img);
+link.href=
+image.src;
 
-results.appendChild(div);
+link.download=
+`Page${p}Img${imgNum}.png`;
+
+link.innerText=
+`Download Page${p}Img${imgNum}`;
+
+card.innerHTML=
+`<h3>Page${p}Img${imgNum}</h3>`;
+
+card.appendChild(image);
+
+card.appendChild(
+document.createElement("br")
+);
+
+card.appendChild(link);
+
+results.appendChild(
+card
+);
+
+imgNum++;
+
+}
 
 }
 
 }
 
 status.innerHTML=
-`Done. Extracted ${imgCount} cropped images`;
+"Done";
 
 };
