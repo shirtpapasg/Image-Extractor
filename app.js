@@ -1,91 +1,72 @@
 import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs";
 
-let selectedFile = null;
+let file = null;
 
-const dropzone =
-document.getElementById("dropzone");
+const drop = document.getElementById("drop");
+const status = document.getElementById("status");
 
-const status =
-document.getElementById("status");
-
-dropzone.addEventListener(
-"dragover",
-e=>{
-e.preventDefault();
+drop.addEventListener("dragover", e=>{
+    e.preventDefault();
 });
 
-dropzone.addEventListener(
-"drop",
-e=>{
+drop.addEventListener("drop", e=>{
+    e.preventDefault();
 
-e.preventDefault();
+    file = e.dataTransfer.files[0];
 
-selectedFile =
-e.dataTransfer.files[0];
-
-dropzone.innerText =
-selectedFile.name;
-
+    drop.innerHTML = file.name;
 });
 
 document
-.getElementById("extractBtn")
-.addEventListener(
-"click",
-async()=>{
+.getElementById("extract")
+.onclick = async ()=>{
 
-if(!selectedFile){
+    if(!file){
+        alert("Drop PDF first");
+        return;
+    }
 
-alert("Choose PDF");
+    status.innerHTML = "Loading PDF...";
 
-return;
-}
+    try{
 
-status.innerText =
-"Processing...";
+        const buffer =
+        await file.arrayBuffer();
 
-const arrayBuffer =
-await selectedFile.arrayBuffer();
+        const pdf =
+        await pdfjsLib.getDocument({
+            data:buffer
+        }).promise;
 
-const pdf =
-await pdfjsLib.getDocument({
-data:arrayBuffer
-}).promise;
+        status.innerHTML =
+        `Loaded ${pdf.numPages} pages`;
 
-let extracted = 0;
+        let total = 0;
 
-for(
-let p=1;
-p<=pdf.numPages;
-p++
-){
+        for(let i=1;i<=pdf.numPages;i++){
 
-const page =
-await pdf.getPage(p);
+            status.innerHTML =
+            `Checking page ${i}/${pdf.numPages}`;
 
-const ops =
-await page.getOperatorList();
+            const page =
+            await pdf.getPage(i);
 
-for(
-let i=0;
-i<ops.fnArray.length;
-i++
-){
+            const images =
+            page.objs;
 
-if(
-ops.fnArray[i]===85
-){
+            total += Object.keys(images).length;
+        }
 
-extracted++;
+        status.innerHTML =
+        `Finished. PDF pages: ${pdf.numPages}`;
 
-}
-}
+    }catch(err){
 
-}
+        console.error(err);
 
-status.innerText =
-`Found ${extracted} embedded images.
+        status.innerHTML =
+        "Error. Open console.";
 
-(Embedded-image detection only.)`;
+    }
 
-});
+};
