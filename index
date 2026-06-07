@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Offline PDF Image Extractor</title>
+
+<style>
+body{
+font-family:Arial;
+padding:40px;
+text-align:center;
+}
+
+#dropzone{
+border:3px dashed gray;
+padding:50px;
+margin-top:20px;
+cursor:pointer;
+}
+
+button{
+padding:12px 20px;
+margin-top:20px;
+font-size:16px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>PDF Image Extractor</h1>
+
+<div id="dropzone">
+Drop PDF here
+</div>
+
+<br>
+
+<button id="extractBtn">
+Extract Images
+</button>
+
+<p id="status"></p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
