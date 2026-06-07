@@ -1,75 +1,147 @@
-import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs";
+import * as pdfjsLib from
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
 "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
 
 let file = null;
 
-const drop = document.getElementById("drop");
-const status = document.getElementById("status");
+const drop =
+document.getElementById("drop");
 
-drop.addEventListener("dragover", e=>{
-    e.preventDefault();
-});
+const input =
+document.getElementById("pdfInput");
 
-drop.addEventListener("drop", e=>{
-    e.preventDefault();
+const status =
+document.getElementById("status");
 
-    file = e.dataTransfer.files[0];
+const results =
+document.getElementById("results");
 
-    drop.innerHTML = file.name;
-});
+drop.addEventListener(
+"click",
+()=>{
+
+input.click();
+
+}
+);
+
+input.addEventListener(
+"change",
+e=>{
+
+file =
+e.target.files[0];
+
+if(file){
+
+drop.innerHTML =
+file.name;
+
+}
+
+}
+);
 
 document
 .getElementById("extract")
-.onclick = async ()=>{
+.addEventListener(
+"click",
+async()=>{
 
-    if(!file){
-        alert("Drop PDF first");
-        return;
-    }
+if(!file){
 
-    status.innerHTML = "Loading PDF...";
+alert(
+"Choose PDF first"
+);
 
-    try{
+return;
 
-        const buffer =
-        await file.arrayBuffer();
+}
 
-        const pdf =
-        await pdfjsLib.getDocument({
-            data:buffer
-        }).promise;
+results.innerHTML = "";
 
-        status.innerHTML =
-        `Loaded ${pdf.numPages} pages`;
+status.innerHTML =
+"Loading PDF...";
 
-        let total = 0;
+try{
 
-        for(let i=1;i<=pdf.numPages;i++){
+const buffer =
+await file.arrayBuffer();
 
-            status.innerHTML =
-            `Checking page ${i}/${pdf.numPages}`;
+const pdf =
+await pdfjsLib
+.getDocument({
+data:buffer
+})
+.promise;
 
-            const page =
-            await pdf.getPage(i);
+let count = 0;
 
-            const images =
-            page.objs;
+for(
+let p=1;
+p<=pdf.numPages;
+p++
+){
 
-            total += Object.keys(images).length;
-        }
+status.innerHTML =
+`Checking page ${p}/${pdf.numPages}`;
 
-        status.innerHTML =
-        `Finished. PDF pages: ${pdf.numPages}`;
+const page =
+await pdf.getPage(p);
 
-    }catch(err){
+const opList =
+await page.getOperatorList();
 
-        console.error(err);
+for(
+let i=0;
+i<opList.fnArray.length;
+i++
+){
 
-        status.innerHTML =
-        "Error. Open console.";
+if(
+opList.fnArray[i] === 85
+){
 
-    }
+count++;
 
-};
+const div =
+document.createElement("div");
+
+div.className =
+"card";
+
+div.innerHTML =
+`
+<h3>
+Image ${count}
+</h3>
+<p>
+Embedded image found
+</p>
+`;
+
+results.appendChild(div);
+
+}
+
+}
+
+}
+
+status.innerHTML =
+`Done. Found ${count} embedded images.`;
+
+}
+catch(err){
+
+console.error(err);
+
+status.innerHTML =
+"Error. Open console.";
+
+}
+
+}
+);
