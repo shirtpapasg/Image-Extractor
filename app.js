@@ -4,51 +4,30 @@ import * as pdfjsLib from
 pdfjsLib.GlobalWorkerOptions.workerSrc =
 "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
 
-let file = null;
+let file=null;
 
-const drop =
-document.getElementById("drop");
+const drop=document.getElementById("drop");
+const input=document.getElementById("pdfInput");
+const status=document.getElementById("status");
+const results=document.getElementById("results");
 
-const input =
-document.getElementById("pdfInput");
+drop.onclick=()=>input.click();
 
-const status =
-document.getElementById("status");
+input.onchange=(e)=>{
 
-const results =
-document.getElementById("results");
-
-drop.addEventListener(
-"click",
-()=>{
-
-input.click();
-
-}
-);
-
-input.addEventListener(
-"change",
-e=>{
-
-file =
-e.target.files[0];
+file=e.target.files[0];
 
 if(file){
 
-drop.innerHTML =
-file.name;
+drop.innerHTML=file.name;
 
 }
 
-}
-);
+};
 
 document
 .getElementById("extract")
-.addEventListener(
-"click",
-async()=>{
+.onclick=async()=>{
 
 if(!file){
 
@@ -60,129 +39,167 @@ return;
 
 results.innerHTML="";
 
-status.innerHTML=
-"Loading PDF...";
-
-try{
-
-const buffer =
+const buffer=
 await file.arrayBuffer();
 
-const pdf =
+const pdf=
 await pdfjsLib
 .getDocument({
 data:buffer
 })
 .promise;
 
-let count=0;
+let imgCount=0;
 
-for(
-let p=1;
-p<=pdf.numPages;
-p++
-){
+for(let p=1;p<=pdf.numPages;p++){
 
-status.innerHTML =
-`Rendering page ${p}/${pdf.numPages}`;
+status.innerHTML=
+`Scanning page ${p}/${pdf.numPages}`;
 
-const page =
+const page=
 await pdf.getPage(p);
 
-const viewport =
+const viewport=
 page.getViewport({
 scale:2
 });
 
-const canvas =
-document.createElement(
-"canvas"
-);
+const canvas=
+document.createElement("canvas");
 
-const ctx =
-canvas.getContext("2d");
-
-canvas.width =
+canvas.width=
 viewport.width;
 
-canvas.height =
+canvas.height=
 viewport.height;
+
+const ctx=
+canvas.getContext("2d");
 
 await page.render({
 canvasContext:ctx,
 viewport:viewport
 }).promise;
 
-count++;
+const imgData=
+ctx.getImageData(
+0,
+0,
+canvas.width,
+canvas.height
+);
 
-const card =
+const data=
+imgData.data;
+
+let minX=canvas.width;
+let minY=canvas.height;
+let maxX=0;
+let maxY=0;
+
+for(
+let y=0;
+y<canvas.height;
+y++
+){
+
+for(
+let x=0;
+x<canvas.width;
+x++
+){
+
+const i=
+(y*canvas.width+x)*4;
+
+const brightness=
+(
+data[i]+
+data[i+1]+
+data[i+2]
+)/3;
+
+if(brightness<240){
+
+if(x<minX)minX=x;
+if(y<minY)minY=y;
+
+if(x>maxX)maxX=x;
+if(y>maxY)maxY=y;
+
+}
+
+}
+
+}
+
+const width=
+maxX-minX;
+
+const height=
+maxY-minY;
+
+if(
+width>100 &&
+height>100
+){
+
+const crop=
+document.createElement(
+"canvas"
+);
+
+crop.width=width;
+crop.height=height;
+
+crop
+.getContext("2d")
+.drawImage(
+canvas,
+minX,
+minY,
+width,
+height,
+0,
+0,
+width,
+height
+);
+
+imgCount++;
+
+const div=
 document.createElement(
 "div"
 );
 
-card.className =
-"card";
+div.className="card";
 
-const img =
+const img=
 document.createElement(
 "img"
 );
 
-img.src =
-canvas.toDataURL(
+img.src=
+crop.toDataURL(
 "image/png"
 );
 
-img.download =
-`Image_${count}.png`;
+img.style.maxWidth=
+"220px";
 
-const link =
-document.createElement(
-"a"
-);
+div.innerHTML=
+`<h3>Image ${imgCount}</h3>`;
 
-link.href =
-img.src;
+div.appendChild(img);
 
-link.download =
-`Image_${count}.png`;
-
-link.innerText =
-"Download PNG";
-
-card.innerHTML =
-`<h3>Page ${p}</h3>`;
-
-card.appendChild(
-img
-);
-
-card.appendChild(
-document.createElement("br")
-);
-
-card.appendChild(
-link
-);
-
-results.appendChild(
-card
-);
-
-}
-
-status.innerHTML =
-`Done. Generated ${count} images.`;
-
-}
-catch(err){
-
-console.error(err);
-
-status.innerHTML =
-"Error. Open console.";
+results.appendChild(div);
 
 }
 
 }
-);
+
+status.innerHTML=
+`Done. Extracted ${imgCount} cropped images`;
+
+};
