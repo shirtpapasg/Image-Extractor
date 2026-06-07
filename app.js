@@ -63,13 +63,11 @@ await pdf.getPage(p);
 
 const viewport=
 page.getViewport({
-scale:2.5
+scale:2.2
 });
 
 const canvas=
-document.createElement(
-"canvas"
-);
+document.createElement("canvas");
 
 canvas.width=
 viewport.width;
@@ -95,11 +93,9 @@ canvas.width,
 canvas.height
 );
 
-const d=
-img.data;
+const d=img.data;
 
-const rowDark=
-[];
+let rowDark=[];
 
 for(
 let y=0;
@@ -118,7 +114,7 @@ x++
 const i=
 (y*canvas.width+x)*4;
 
-const bright=
+const b=
 (
 d[i]+
 d[i+1]+
@@ -126,7 +122,7 @@ d[i+2]
 )/3;
 
 if(
-bright<220
+b<220
 ){
 
 dark++;
@@ -150,7 +146,7 @@ y++
 ){
 
 if(
-rowDark[y] > 50 &&
+rowDark[y] > 120 &&
 start===null
 ){
 
@@ -159,7 +155,7 @@ start=y;
 }
 
 if(
-rowDark[y] <= 50 &&
+rowDark[y] <= 120 &&
 start!==null
 ){
 
@@ -174,41 +170,70 @@ start=null;
 
 }
 
-let imgNum=1;
+let merged=[];
 
 for(
-const region
-of regions
+const r of regions
 ){
-
-let minY=
-region[0]-120;
-
-let maxY=
-region[1]+120;
-
-minY=
-Math.max(
-0,
-minY
-);
-
-maxY=
-Math.min(
-canvas.height,
-maxY
-);
-
-const cropHeight=
-maxY-minY;
 
 if(
-cropHeight<150
+merged.length===0
 ){
+
+merged.push(r);
 
 continue;
 
 }
+
+const prev=
+merged[
+merged.length-1
+];
+
+if(
+
+r[0]-prev[1]
+
+< 220
+
+){
+
+prev[1]=r[1];
+
+}else{
+
+merged.push(r);
+
+}
+
+}
+
+let imgNum=1;
+
+for(
+const region
+of merged
+){
+
+let minY=
+Math.max(
+0,
+region[0]-150
+);
+
+let maxY=
+Math.min(
+canvas.height,
+region[1]+150
+);
+
+const h=
+maxY-minY;
+
+if(
+h<250
+) continue;
 
 const crop=
 document.createElement(
@@ -219,7 +244,7 @@ crop.width=
 canvas.width;
 
 crop.height=
-cropHeight;
+h;
 
 crop
 .getContext("2d")
@@ -231,13 +256,13 @@ canvas,
 minY,
 
 canvas.width,
-cropHeight,
+h,
 
 0,
 0,
 
 canvas.width,
-cropHeight
+h
 
 );
 
@@ -252,7 +277,7 @@ crop.toDataURL(
 );
 
 image.style.maxWidth=
-"400px";
+"450px";
 
 const link=
 document.createElement(
@@ -284,9 +309,8 @@ image
 );
 
 card.appendChild(
-document.createElement(
-"br"
-));
+document.createElement("br")
+);
 
 card.appendChild(
 link
