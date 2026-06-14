@@ -1,121 +1,1040 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
 <meta charset="UTF-8">
-
-<title>
-PDF Image Extractor
-</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1565C0">
+<title>PDF Crop Extractor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f1729;--surface:#1a2540;--surface2:#222e4a;--border:#2d3f66;
+  --accent:#2979ff;--accent2:#448aff;--text:#e8eaf0;--text2:#8fa3c8;
+  --danger:#ef5350;--success:#66bb6a;--warn:#ffa726;
+  --handle:8px;--radius:10px;--radius-sm:6px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px}
 
-body{
+/* ── HEADER ── */
+#header{
+  display:flex;align-items:center;gap:8px;padding:10px 14px;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  flex-shrink:0;z-index:10;
+}
+#logo{font-size:16px;font-weight:700;color:var(--accent2);white-space:nowrap;margin-right:4px}
+#logo span{color:var(--text2);font-weight:400}
+.hbtn{
+  display:flex;align-items:center;gap:5px;padding:7px 11px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  color:var(--text);cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;
+  white-space:nowrap;-webkit-user-select:none;user-select:none;
+}
+.hbtn:hover{background:var(--border);border-color:var(--accent)}
+.hbtn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.hbtn.primary:hover{background:var(--accent2)}
+.hbtn svg{flex-shrink:0}
+#page-ctrl{display:flex;align-items:center;gap:6px;margin-left:auto}
+#page-num{min-width:90px;text-align:center;color:var(--text2);font-size:13px}
+#zoom-ctrl{display:flex;align-items:center;gap:4px}
+.sep{width:1px;height:24px;background:var(--border);margin:0 4px}
 
-font-family:Arial;
-max-width:900px;
-margin:auto;
-padding:40px;
-text-align:center;
+/* ── LAYOUT ── */
+#app{display:flex;flex:1;overflow:hidden;height:calc(100vh - 53px)}
 
+/* ── CANVAS AREA ── */
+#canvas-area{
+  flex:1;overflow:auto;position:relative;background:var(--bg);
+  display:flex;justify-content:center;align-items:flex-start;padding:16px;
+}
+#canvas-wrap{position:relative;display:inline-block;box-shadow:0 4px 32px rgba(0,0,0,.6);border-radius:4px;overflow:hidden}
+#pdf-canvas{display:block;background:#fff}
+#overlay-canvas{position:absolute;top:0;left:0;cursor:crosshair;touch-action:none}
+
+/* ── CROPS PANEL ── */
+#crops-panel{
+  width:240px;min-width:240px;background:var(--surface);
+  border-left:1px solid var(--border);display:flex;flex-direction:column;
+  overflow:hidden;flex-shrink:0;
+}
+#panel-head{
+  padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+#panel-head h3{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+#crop-count{
+  background:var(--accent);color:#fff;border-radius:99px;
+  font-size:11px;font-weight:700;padding:1px 7px;
+}
+#crops-list{flex:1;overflow-y:auto;padding:8px}
+.crop-item{
+  background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius);
+  margin-bottom:8px;overflow:hidden;cursor:pointer;transition:border-color .15s;
+}
+.crop-item:hover{border-color:var(--accent2)}
+.crop-item.selected{border-color:var(--accent);box-shadow:0 0 0 2px rgba(41,121,255,.25)}
+.crop-thumb{width:100%;aspect-ratio:16/7;object-fit:cover;display:block;background:#1a1a2e}
+.crop-thumb-placeholder{
+  width:100%;aspect-ratio:16/7;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);color:var(--text2);font-size:11px;
+}
+.crop-meta{padding:7px 10px;display:flex;align-items:center;justify-content:space-between;gap:4px}
+.crop-label{
+  font-size:12px;font-weight:600;color:var(--text);flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text;
+  border:1px solid transparent;border-radius:4px;padding:2px 4px;
+  background:transparent;color:var(--text);outline:none;width:100%;
+}
+.crop-label:focus{border-color:var(--accent);background:var(--bg)}
+.crop-actions{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border:none;background:transparent;color:var(--text2);cursor:pointer;
+  border-radius:var(--radius-sm);transition:all .15s;
+}
+.icon-btn:hover{background:var(--border);color:var(--text)}
+.icon-btn.del:hover{color:var(--danger);background:rgba(239,83,80,.15)}
+.icon-btn.dl:hover{color:var(--success);background:rgba(102,187,106,.15)}
+
+/* ── PAGE GROUP HEADERS ── */
+.page-group{margin-bottom:4px}
+.page-group-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px 8px;margin-bottom:5px;
+  background:var(--bg);border-radius:var(--radius-sm);
+  font-size:11px;font-weight:700;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.6px;position:sticky;top:0;z-index:2;
+}
+.page-group-header.current{color:var(--accent2)}
+.current-badge{
+  background:var(--accent);color:#fff;border-radius:99px;
+  font-size:10px;font-weight:700;padding:1px 6px;text-transform:none;letter-spacing:0;
 }
 
-h1{
-
-margin-bottom:40px;
-
+#panel-footer{
+  padding:10px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:6px;
 }
 
-#drop{
-
-border:3px dashed gray;
-padding:60px;
-font-size:22px;
-cursor:pointer;
-border-radius:10px;
-
+/* ── AUTO DETECT BUTTON ── */
+#autodetect-btn{
+  width:100%;background:linear-gradient(135deg,#6a1b9a,#4527a0);
+  border-color:#7b1fa2;color:#fff;
+}
+#autodetect-btn:hover:not(:disabled){background:linear-gradient(135deg,#7b1fa2,#512da8);border-color:#9c27b0}
+#autodetect-btn:disabled{opacity:.6;cursor:not-allowed}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;animation:spin .7s linear infinite}
+.detect-badge{
+  display:inline-flex;align-items:center;gap:3px;
+  background:rgba(255,255,255,.15);border-radius:4px;padding:1px 5px;font-size:10px;margin-left:4px;
 }
 
-button{
+#snap-btn{width:100%}
+#export-all-btn{width:100%;background:var(--success);border-color:var(--success);color:#fff}
+#export-all-btn:hover{background:#81c784}
 
-padding:15px 25px;
-font-size:18px;
-margin-top:25px;
-cursor:pointer;
+/* ── EMPTY STATE ── */
+#empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;text-align:center;padding:24px;color:var(--text2);gap:12px;
+}
+#empty-state svg{opacity:.3}
+#empty-state p{font-size:13px;line-height:1.5}
 
+/* ── UPLOAD OVERLAY ── */
+#upload-overlay{
+  position:fixed;inset:0;background:var(--bg);z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+}
+#upload-zone{
+  border:2.5px dashed var(--border);border-radius:var(--radius);
+  padding:48px 40px;text-align:center;cursor:pointer;transition:all .2s;
+  max-width:400px;width:90%;
+}
+#upload-zone:hover,#upload-zone.drag-over{border-color:var(--accent);background:rgba(41,121,255,.06)}
+#upload-zone h2{font-size:20px;font-weight:700;margin-bottom:8px}
+#upload-zone p{color:var(--text2);font-size:14px;margin-bottom:20px}
+#upload-zone svg{margin-bottom:12px;opacity:.5}
+#file-input{display:none}
+
+/* ── TOOLBAR (bottom, mobile) ── */
+#toolbar{
+  display:none;padding:8px 12px;background:var(--surface);
+  border-top:1px solid var(--border);gap:6px;flex-shrink:0;
 }
 
-#status{
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
-margin-top:20px;
-font-size:18px;
-
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:#333;color:#fff;padding:10px 18px;border-radius:99px;
+  font-size:13px;font-weight:500;transition:transform .25s;z-index:200;pointer-events:none;
+  white-space:nowrap;
 }
+#toast.show{transform:translateX(-50%) translateY(0)}
 
-#results{
-
-margin-top:40px;
-display:flex;
-flex-wrap:wrap;
-justify-content:center;
-gap:20px;
-
+/* ── RESPONSIVE MOBILE ── */
+@media(max-width:640px){
+  #crops-panel{display:none}
+  #toolbar{display:flex;flex-wrap:wrap;justify-content:center}
+  #canvas-area{padding:8px}
+  #logo span{display:none}
+  #page-num{min-width:70px}
 }
-
-.card{
-
-border:1px solid #ccc;
-padding:10px;
-width:220px;
-
-}
-
-.card img{
-
-max-width:200px;
-
-}
-
 </style>
-
 </head>
-
 <body>
 
-<h1>
-
-PDF Image Extractor
-
-</h1>
-
-<div id="drop">
-
-Click Here To Select PDF
-
+<!-- Upload Overlay -->
+<div id="upload-overlay">
+  <div id="upload-zone" onclick="document.getElementById('file-input').click()">
+    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+    <h2>PDF Crop Extractor</h2>
+    <p>Upload a PDF to start extracting images.<br>Draw crop regions directly on the page.</p>
+    <div class="hbtn primary" style="justify-content:center;width:100%;max-width:200px;margin:0 auto">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Upload PDF
+    </div>
+  </div>
+  <p style="color:var(--text2);font-size:12px">Works entirely offline · No data leaves your device</p>
+  <input type="file" id="file-input" accept=".pdf,application/pdf">
 </div>
 
-<input
-type="file"
-id="pdfInput"
-accept=".pdf"
-style="display:none;"
->
+<!-- Header -->
+<div id="header">
+  <div id="logo">Crop<span>PDF</span></div>
+  <div class="sep"></div>
+  <button class="hbtn" id="open-btn" onclick="document.getElementById('file-input2').click()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Open PDF
+  </button>
+  <input type="file" id="file-input2" accept=".pdf,application/pdf" style="display:none">
+  <div class="sep"></div>
+  <div id="page-ctrl">
+    <button class="hbtn" id="prev-btn" onclick="changePage(-1)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span id="page-num">— / —</span>
+    <button class="hbtn" id="next-btn" onclick="changePage(1)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+  <div class="sep"></div>
+  <div id="zoom-ctrl">
+    <button class="hbtn" onclick="changeZoom(-0.2)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button class="hbtn" id="zoom-label" onclick="changeZoom(0)" style="min-width:56px;justify-content:center">100%</button>
+    <button class="hbtn" onclick="changeZoom(0.2)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+</div>
 
-<br>
+<!-- Main App -->
+<div id="app">
+  <!-- Canvas Area -->
+  <div id="canvas-area">
+    <div id="canvas-wrap">
+      <canvas id="pdf-canvas"></canvas>
+      <canvas id="overlay-canvas"></canvas>
+    </div>
+  </div>
 
-<button id="extract">
+  <!-- Crops Panel -->
+  <div id="crops-panel">
+    <div id="panel-head">
+      <h3>Crop Regions</h3>
+      <span id="crop-count">0</span>
+    </div>
+    <div id="crops-list">
+      <div id="empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <p>Draw on the PDF to<br>create crop regions</p>
+      </div>
+    </div>
+    <div id="panel-footer">
+      <button class="hbtn" id="autodetect-btn" onclick="autoDetectCrops()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M11 8v3l2 2"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Auto Detect Figures
+        <span class="detect-badge">AI</span>
+      </button>
+      <button class="hbtn" id="snap-btn" onclick="snapAllToFullWidth()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><polyline points="8 8 3 3 8 3"/><polyline points="16 8 21 3 16 3"/><polyline points="8 16 3 21 8 21"/><polyline points="16 16 21 21 16 21"/></svg>
+        Snap All to Full Width
+      </button>
+      <button class="hbtn primary" id="export-all-btn" onclick="exportAllCrops()" style="background:var(--success);border-color:var(--success)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export All Crops
+      </button>
+    </div>
+  </div>
+</div>
 
-Extract Images
+<!-- Mobile Toolbar -->
+<div id="toolbar">
+  <button class="hbtn" onclick="snapAllToFullWidth()">↔ Full Width</button>
+  <button class="hbtn" onclick="deleteSelectedCrop()" style="color:var(--danger)">🗑 Delete</button>
+  <button class="hbtn primary" onclick="exportAllCrops()">⬇ Export All</button>
+</div>
 
-</button>
+<div id="toast"></div>
 
-<div id="status"></div>
+<script>
+// ── PDF.js setup ──
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-<div id="results"></div>
+// ── State ──
+let pdfDoc = null, currentPage = 1, totalPages = 0, scale = 1.5;
+let crops = {};
+let cropCounter = 0;
+let selectedId = null;
+let interacting = false, interactMode = null;
+let pointerStart = {x:0,y:0}, pointerCurrent = {x:0,y:0};
+let moveOffset = {x:0,y:0};
+let resizeHandle = null;
+const HANDLE_R = 6, HANDLE_HIT = 14;
 
-<script type="module" src="app.js"></script>
+// ── DOM ──
+const pdfCanvas     = document.getElementById('pdf-canvas');
+const overlayCanvas = document.getElementById('overlay-canvas');
+const oc            = overlayCanvas.getContext('2d');
+const pageNumEl     = document.getElementById('page-num');
+const zoomLabel     = document.getElementById('zoom-label');
+const cropsList     = document.getElementById('crops-list');
+const cropCount     = document.getElementById('crop-count');
 
+// ── File inputs ──
+['file-input','file-input2'].forEach(id => {
+  document.getElementById(id).addEventListener('change', e => {
+    if(e.target.files[0]) loadPDF(e.target.files[0]);
+  });
+});
+
+const uploadZone = document.getElementById('upload-zone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag-over');
+  if(e.dataTransfer.files[0]) loadPDF(e.dataTransfer.files[0]);
+});
+document.getElementById('app').addEventListener('dragover', e => e.preventDefault());
+document.getElementById('app').addEventListener('drop', e => {
+  e.preventDefault();
+  if(e.dataTransfer.files[0]) loadPDF(e.dataTransfer.files[0]);
+});
+
+// ── Load PDF ──
+async function loadPDF(file) {
+  if(!file.name.endsWith('.pdf') && file.type !== 'application/pdf') {
+    showToast('Please upload a PDF file'); return;
+  }
+  const arr = await file.arrayBuffer();
+  pdfDoc = await pdfjsLib.getDocument({data: arr}).promise;
+  totalPages = pdfDoc.numPages;
+  currentPage = 1;
+  crops = {};
+  selectedId = null;
+  document.getElementById('upload-overlay').style.display = 'none';
+  await renderPage(currentPage);
+  updateUI();
+  showToast(`Loaded "${file.name}" · ${totalPages} page${totalPages>1?'s':''}`);
+}
+
+// ── Render Page ──
+async function renderPage(num) {
+  if(!pdfDoc) return;
+  const page = await pdfDoc.getPage(num);
+  const viewport = page.getViewport({scale});
+  pdfCanvas.width  = viewport.width;
+  pdfCanvas.height = viewport.height;
+  overlayCanvas.width  = viewport.width;
+  overlayCanvas.height = viewport.height;
+  await page.render({canvasContext: pdfCanvas.getContext('2d'), viewport}).promise;
+  drawOverlay();
+  updateCropsPanel();
+}
+
+// ── Page / Zoom navigation ──
+async function changePage(delta) {
+  if(!pdfDoc) return;
+  if(delta === 0) { scale = 1.5; }
+  else {
+    const np = currentPage + delta;
+    if(np < 1 || np > totalPages) return;
+    currentPage = np;
+  }
+  await renderPage(currentPage);
+  updateUI();
+}
+
+async function changeZoom(delta) {
+  if(!pdfDoc) return;
+  if(delta === 0) { scale = 1.5; }
+  else { scale = Math.max(0.5, Math.min(4, scale + delta)); }
+  await renderPage(currentPage);
+  updateUI();
+}
+
+function updateUI() {
+  pageNumEl.textContent = pdfDoc ? `${currentPage} / ${totalPages}` : '— / —';
+  zoomLabel.textContent = Math.round(scale/1.5*100) + '%';
+  document.getElementById('prev-btn').disabled = currentPage <= 1;
+  document.getElementById('next-btn').disabled = currentPage >= totalPages;
+}
+
+// ── Canvas coordinates ──
+function getPos(e) {
+  const r = overlayCanvas.getBoundingClientRect();
+  const scaleX = overlayCanvas.width / r.width;
+  const scaleY = overlayCanvas.height / r.height;
+  let cx, cy;
+  if(e.touches) {
+    cx = (e.touches[0].clientX - r.left) * scaleX;
+    cy = (e.touches[0].clientY - r.top)  * scaleY;
+  } else {
+    cx = (e.clientX - r.left) * scaleX;
+    cy = (e.clientY - r.top)  * scaleY;
+  }
+  return {x: cx, y: cy};
+}
+
+function normalizeRect(x, y, w, h) {
+  return {
+    x: w < 0 ? x + w : x,
+    y: h < 0 ? y + h : y,
+    w: Math.abs(w),
+    h: Math.abs(h)
+  };
+}
+
+// ── Hit testing ──
+function getHandles(crop) {
+  const {x,y,w,h} = crop;
+  return {
+    nw:{x,y}, n:{x:x+w/2,y}, ne:{x:x+w,y},
+    e:{x:x+w,y:y+h/2},
+    se:{x:x+w,y:y+h}, s:{x:x+w/2,y:y+h}, sw:{x,y:y+h},
+    w:{x,y:y+h/2}
+  };
+}
+
+function hitHandle(px, py, crop) {
+  const handles = getHandles(crop);
+  for(const [key, {x,y}] of Object.entries(handles)) {
+    if(Math.abs(px-x) <= HANDLE_HIT && Math.abs(py-y) <= HANDLE_HIT) return key;
+  }
+  return null;
+}
+
+function hitCropBody(px, py, crop) {
+  return px >= crop.x && px <= crop.x+crop.w && py >= crop.y && py <= crop.y+crop.h;
+}
+
+function hitTest(px, py) {
+  const pageCrops = (crops[currentPage] || []).slice().reverse();
+  for(const crop of pageCrops) {
+    const h = hitHandle(px, py, crop);
+    if(h) return {type:'handle', crop, handle:h};
+    if(hitCropBody(px, py, crop)) return {type:'body', crop};
+  }
+  return {type:'none'};
+}
+
+// ── Draw Overlay ──
+function drawOverlay() {
+  const W = overlayCanvas.width, H = overlayCanvas.height;
+  oc.clearRect(0, 0, W, H);
+  const pageCrops = crops[currentPage] || [];
+
+  if(pageCrops.length > 0) {
+    oc.save();
+    oc.fillStyle = 'rgba(0,0,0,0.55)';
+    oc.fillRect(0, 0, W, H);
+    oc.globalCompositeOperation = 'destination-out';
+    for(const crop of pageCrops) {
+      oc.fillStyle = 'rgba(0,0,0,1)';
+      oc.fillRect(crop.x, crop.y, crop.w, crop.h);
+    }
+    oc.restore();
+  }
+
+  if(interacting && interactMode === 'create') {
+    const r = normalizeRect(
+      pointerStart.x, pointerStart.y,
+      pointerCurrent.x - pointerStart.x,
+      pointerCurrent.y - pointerStart.y
+    );
+    oc.save();
+    oc.strokeStyle = '#FFEB3B';
+    oc.lineWidth = 2;
+    oc.setLineDash([6,3]);
+    oc.strokeRect(r.x, r.y, r.w, r.h);
+    oc.fillStyle = 'rgba(255,235,59,0.08)';
+    oc.fillRect(r.x, r.y, r.w, r.h);
+    oc.restore();
+  }
+
+  for(const crop of pageCrops) {
+    const sel = crop.id === selectedId;
+    oc.save();
+    oc.strokeStyle = sel ? '#448aff' : 'rgba(100,181,246,0.7)';
+    oc.lineWidth = sel ? 2 : 1.5;
+    oc.setLineDash(sel ? [] : [5,4]);
+    oc.strokeRect(crop.x + 0.5, crop.y + 0.5, crop.w, crop.h);
+    oc.restore();
+
+    oc.save();
+    const label = crop.label || `Crop ${crop.id}`;
+    oc.font = 'bold 11px -apple-system, sans-serif';
+    const tw = oc.measureText(label).width;
+    const bx = crop.x + 4, by = crop.y + 4;
+    oc.fillStyle = sel ? '#448aff' : 'rgba(41,121,255,0.85)';
+    oc.beginPath();
+    oc.roundRect(bx-3, by-1, tw+10, 16, 4);
+    oc.fill();
+    oc.fillStyle = '#fff';
+    oc.fillText(label, bx+2, by+11);
+    oc.restore();
+
+    if(sel) {
+      const handles = getHandles(crop);
+      for(const {x,y} of Object.values(handles)) {
+        oc.save();
+        oc.beginPath();
+        oc.arc(x, y, HANDLE_R, 0, Math.PI*2);
+        oc.fillStyle = '#fff';
+        oc.fill();
+        oc.strokeStyle = '#448aff';
+        oc.lineWidth = 2;
+        oc.stroke();
+        oc.restore();
+      }
+    }
+  }
+}
+
+// ── Pointer events ──
+function onPointerDown(e) {
+  e.preventDefault();
+  if(!pdfDoc) return;
+  const p = getPos(e);
+  const hit = hitTest(p.x, p.y);
+  if(hit.type === 'handle') {
+    interacting = true; interactMode = 'resize';
+    resizeHandle = hit.handle;
+    selectedId = hit.crop.id;
+    pointerStart = p;
+  } else if(hit.type === 'body') {
+    interacting = true; interactMode = 'move';
+    selectedId = hit.crop.id;
+    moveOffset = {x: p.x - hit.crop.x, y: p.y - hit.crop.y};
+    pointerStart = p;
+  } else {
+    interacting = true; interactMode = 'create';
+    selectedId = null;
+    pointerStart = p; pointerCurrent = p;
+  }
+  drawOverlay();
+  updateCropsPanel();
+}
+
+function onPointerMove(e) {
+  e.preventDefault();
+  if(!pdfDoc) return;
+  const p = getPos(e);
+  pointerCurrent = p;
+
+  if(!interacting) {
+    const hit = hitTest(p.x, p.y);
+    if(hit.type === 'handle') {
+      const cursors = {nw:'nw-resize',n:'n-resize',ne:'ne-resize',e:'e-resize',
+                       se:'se-resize',s:'s-resize',sw:'sw-resize',w:'w-resize'};
+      overlayCanvas.style.cursor = cursors[hit.handle] || 'crosshair';
+    } else if(hit.type === 'body') {
+      overlayCanvas.style.cursor = 'move';
+    } else {
+      overlayCanvas.style.cursor = 'crosshair';
+    }
+    return;
+  }
+
+  if(interactMode === 'move') {
+    const crop = getCrop(selectedId);
+    if(crop) {
+      const W = overlayCanvas.width, H = overlayCanvas.height;
+      crop.x = Math.max(0, Math.min(W - crop.w, p.x - moveOffset.x));
+      crop.y = Math.max(0, Math.min(H - crop.h, p.y - moveOffset.y));
+    }
+  } else if(interactMode === 'resize') {
+    const crop = getCrop(selectedId);
+    if(crop) applyResize(crop, resizeHandle, p);
+  }
+  drawOverlay();
+}
+
+function onPointerUp(e) {
+  e.preventDefault();
+  if(!pdfDoc || !interacting) return;
+  if(interactMode === 'create') {
+    const r = normalizeRect(
+      pointerStart.x, pointerStart.y,
+      pointerCurrent.x - pointerStart.x,
+      pointerCurrent.y - pointerStart.y
+    );
+    if(r.w > 10 && r.h > 10) {
+      createCrop(r.x, r.y, r.w, r.h);
+    }
+  } else {
+    refreshThumbnail(selectedId);
+  }
+  interacting = false; interactMode = null; resizeHandle = null;
+  drawOverlay();
+  updateCropsPanel();
+}
+
+function applyResize(crop, handle, p) {
+  const r = 4;
+  const origR = crop.x + crop.w;
+  const origB = crop.y + crop.h;
+  if(handle.includes('w')) { const nx = Math.min(p.x, origR-r); crop.w += crop.x - nx; crop.x = nx; }
+  if(handle.includes('e')) { crop.w = Math.max(r, p.x - crop.x); }
+  if(handle.includes('n')) { const ny = Math.min(p.y, origB-r); crop.h += crop.y - ny; crop.y = ny; }
+  if(handle.includes('s')) { crop.h = Math.max(r, p.y - crop.y); }
+  const W = overlayCanvas.width, H = overlayCanvas.height;
+  crop.x = Math.max(0, crop.x); crop.y = Math.max(0, crop.y);
+  if(crop.x + crop.w > W) crop.w = W - crop.x;
+  if(crop.y + crop.h > H) crop.h = H - crop.y;
+}
+
+overlayCanvas.addEventListener('mousedown',  onPointerDown);
+overlayCanvas.addEventListener('mousemove',  onPointerMove);
+overlayCanvas.addEventListener('mouseup',    onPointerUp);
+overlayCanvas.addEventListener('touchstart', onPointerDown, {passive:false});
+overlayCanvas.addEventListener('touchmove',  onPointerMove, {passive:false});
+overlayCanvas.addEventListener('touchend',   onPointerUp,  {passive:false});
+
+// ── Crop management ──
+function getCrop(id) {
+  for(const list of Object.values(crops))
+    for(const c of list) if(c.id === id) return c;
+  return null;
+}
+
+function getCropPage(id) {
+  for(const [pg, list] of Object.entries(crops))
+    if(list.some(c => c.id === id)) return parseInt(pg);
+  return null;
+}
+
+function createCrop(x, y, w, h) {
+  if(!crops[currentPage]) crops[currentPage] = [];
+  cropCounter++;
+  const id = cropCounter;
+  const label = `Crop ${id}`;
+  const crop = {id, x, y, w, h, label, thumb: null};
+  crops[currentPage].push(crop);
+  selectedId = id;
+  generateThumbnail(crop);
+  return crop;
+}
+
+function deleteSelectedCrop() {
+  if(!selectedId) { showToast('Select a crop first'); return; }
+  deleteCrop(selectedId);
+}
+
+function deleteCrop(id) {
+  for(const pg of Object.keys(crops)) {
+    const idx = crops[pg].findIndex(c => c.id === id);
+    if(idx !== -1) { crops[pg].splice(idx, 1); break; }
+  }
+  if(selectedId === id) selectedId = null;
+  drawOverlay();
+  updateCropsPanel();
+}
+
+function snapCropToFullWidth(id) {
+  const crop = getCrop(id);
+  if(!crop) return;
+  crop.x = 0; crop.w = overlayCanvas.width;
+  generateThumbnail(crop);
+  drawOverlay();
+  updateCropsPanel();
+}
+
+function snapAllToFullWidth() {
+  const pageCrops = crops[currentPage] || [];
+  if(!pageCrops.length) { showToast('No crops on this page'); return; }
+  pageCrops.forEach(c => { c.x = 0; c.w = overlayCanvas.width; generateThumbnail(c); });
+  drawOverlay();
+  updateCropsPanel();
+  showToast('Snapped all to full width');
+}
+
+// ── Thumbnail generation ──
+function generateThumbnail(crop) {
+  if(!pdfDoc) return;
+  const tmp = document.createElement('canvas');
+  tmp.width = crop.w; tmp.height = crop.h;
+  const ctx = tmp.getContext('2d');
+  ctx.drawImage(pdfCanvas, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+  crop.thumb = tmp.toDataURL('image/png');
+  const img = document.querySelector(`[data-thumb="${crop.id}"]`);
+  if(img) img.src = crop.thumb;
+}
+
+function refreshThumbnail(id) {
+  const crop = getCrop(id);
+  if(crop) generateThumbnail(crop);
+}
+
+// ── Export ──
+function exportCrop(id) {
+  const crop = getCrop(id);
+  if(!crop) return;
+  generateThumbnail(crop);
+  const a = document.createElement('a');
+  a.download = `${(crop.label||'crop').replace(/[^a-z0-9_\-]/gi,'_')}.png`;
+  a.href = crop.thumb;
+  a.click();
+  showToast(`Downloaded "${crop.label}"`);
+}
+
+async function exportAllCrops() {
+  const allCrops = [];
+  for(const [pg, list] of Object.entries(crops)) allCrops.push(...list);
+  if(!allCrops.length) { showToast('No crops to export'); return; }
+
+  for(const [pg, list] of Object.entries(crops)) {
+    const page = await pdfDoc.getPage(parseInt(pg));
+    const viewport = page.getViewport({scale});
+    const tmp = document.createElement('canvas');
+    tmp.width = viewport.width; tmp.height = viewport.height;
+    await page.render({canvasContext: tmp.getContext('2d'), viewport}).promise;
+    for(const crop of list) {
+      const out = document.createElement('canvas');
+      out.width = crop.w; out.height = crop.h;
+      out.getContext('2d').drawImage(tmp, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+      const a = document.createElement('a');
+      a.download = `${(crop.label||'crop').replace(/[^a-z0-9_\-]/gi,'_')}_p${pg}.png`;
+      a.href = out.toDataURL('image/png');
+      a.click();
+      await new Promise(r => setTimeout(r, 120));
+    }
+  }
+  showToast(`Exported ${allCrops.length} crop${allCrops.length>1?'s':''}`);
+}
+
+// ── Crops panel ──
+function cropItemHTML(crop) {
+  return `
+    <div class="crop-item${crop.id===selectedId?' selected':''}" data-id="${crop.id}" onclick="selectCrop(${crop.id})">
+      ${crop.thumb
+        ? `<img class="crop-thumb" data-thumb="${crop.id}" src="${crop.thumb}" alt="${escHtml(crop.label)}">`
+        : `<div class="crop-thumb-placeholder">Generating…</div>`}
+      <div class="crop-meta">
+        <input class="crop-label" value="${escHtml(crop.label)}" data-id="${crop.id}"
+          onclick="event.stopPropagation()"
+          oninput="renameCropLive(${crop.id}, this.value)"
+          onblur="renameCrop(${crop.id}, this.value)"
+          onkeydown="if(event.key==='Enter')this.blur()">
+        <div class="crop-actions">
+          <button class="icon-btn dl" title="Download" onclick="event.stopPropagation();exportCrop(${crop.id})">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </button>
+          <button class="icon-btn" title="Snap to full width" onclick="event.stopPropagation();snapCropToFullWidth(${crop.id})">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <polyline points="8 8 3 3 8 3"/><polyline points="16 8 21 3 16 3"/>
+              <polyline points="8 16 3 21 8 21"/><polyline points="16 16 21 21 16 21"/>
+            </svg>
+          </button>
+          <button class="icon-btn del" title="Delete" onclick="event.stopPropagation();deleteCrop(${crop.id})">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function updateCropsPanel() {
+  const total = Object.values(crops).reduce((a,b)=>a+b.length, 0);
+  cropCount.textContent = total;
+
+  const pages = Object.keys(crops).map(Number).filter(pg => crops[pg] && crops[pg].length > 0).sort((a,b)=>a-b);
+
+  if(!pages.length) {
+    cropsList.innerHTML = `
+      <div id="empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+        </svg>
+        <p>Draw on the PDF to<br>create crop regions</p>
+      </div>`;
+    return;
+  }
+
+  const scrollTop = cropsList.scrollTop;
+
+  cropsList.innerHTML = pages.map(pg => {
+    const isCurrent = pg === currentPage;
+    return `
+      <div class="page-group">
+        <div class="page-group-header${isCurrent?' current':''}">
+          <span>Page ${pg}</span>
+          ${isCurrent ? '<span class="current-badge">Current</span>' : ''}
+        </div>
+        ${crops[pg].map(cropItemHTML).join('')}
+      </div>`;
+  }).join('');
+
+  cropsList.scrollTop = scrollTop;
+}
+
+async function selectCrop(id) {
+  const pg = getCropPage(id);
+  if(pg !== null && pg !== currentPage) {
+    currentPage = pg;
+    await renderPage(currentPage);
+    updateUI();
+  }
+  selectedId = id;
+  drawOverlay();
+  updateCropsPanel();
+  const crop = getCrop(id);
+  if(crop) {
+    const area = document.getElementById('canvas-area');
+    const wrap = document.getElementById('canvas-wrap');
+    const wrapRect = wrap.getBoundingClientRect();
+    const areaRect = area.getBoundingClientRect();
+    const cropCenterY = wrapRect.top - areaRect.top + area.scrollTop + crop.y + crop.h/2;
+    area.scrollTo({top: cropCenterY - area.clientHeight/2, behavior:'smooth'});
+  }
+}
+
+// Live update label + canvas badge without rebuilding panel (preserves input focus)
+function renameCropLive(id, value) {
+  const crop = getCrop(id);
+  if(crop) { crop.label = value || `Crop ${id}`; drawOverlay(); }
+}
+
+// On blur: trim, finalise, rebuild panel
+function renameCrop(id, value) {
+  const crop = getCrop(id);
+  if(crop) {
+    crop.label = value.trim() || `Crop ${id}`;
+    drawOverlay();
+    updateCropsPanel();
+  }
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Auto Detect Figures ──
+async function autoDetectCrops() {
+  if (!pdfDoc) { showToast('Upload a PDF first'); return; }
+  const btn = document.getElementById('autodetect-btn');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spin">⟳</span> Analysing…';
+  btn.disabled = true;
+  await new Promise(r => setTimeout(r, 40));
+
+  try {
+    const W = pdfCanvas.width, H = pdfCanvas.height;
+    const { data } = pdfCanvas.getContext('2d').getImageData(0, 0, W, H);
+
+    // ── 1. Per-row pixel statistics ──
+    const rowDensity  = new Float32Array(H);
+    const rowMaxRun   = new Int32Array(H);
+    const rowHasColor = new Uint8Array(H);
+
+    for (let y = 0; y < H; y++) {
+      let nw = 0, run = 0, mx = 0;
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4;
+        const r = data[i], g = data[i+1], b = data[i+2];
+        if (0.299*r + 0.587*g + 0.114*b < 238) {
+          nw++; if (++run > mx) mx = run;
+          if (Math.max(r,g,b) - Math.min(r,g,b) > 25) rowHasColor[y] = 1;
+        } else { run = 0; }
+      }
+      rowDensity[y] = nw / W;
+      rowMaxRun[y]  = mx;
+    }
+
+    // ── 2. Adaptive run-length ceiling ──
+    // The most frequent long run in the page is the outer question-box / table border.
+    // Diagram-scale runs must be shorter than that dominant border line.
+    const ABS_MIN_RUN = Math.floor(W * 0.10);
+    const hist = new Int32Array(W + 1);
+    for (let y = 0; y < H; y++) if (rowMaxRun[y] >= ABS_MIN_RUN) hist[rowMaxRun[y]]++;
+
+    let dominantRun = W, dominantPeak = 0;
+    for (let l = ABS_MIN_RUN; l <= W; l++) {
+      const s = (hist[l-2]||0)+(hist[l-1]||0)+hist[l]+(hist[l+1]||0)+(hist[l+2]||0);
+      if (s > dominantPeak) { dominantPeak = s; dominantRun = l; }
+    }
+    const MAX_RUN = Math.floor(dominantRun * 0.80);
+    const MIN_RUN = ABS_MIN_RUN;
+
+    // ── 3. Rolling background density ──
+    const BG_WIN = 120;
+    const bgDensity = new Float32Array(H);
+    {
+      let sum = 0, lo = 0, hi = 0;
+      while (hi < Math.min(BG_WIN, H)) sum += rowDensity[hi++];
+      for (let y = 0; y < H; y++) {
+        bgDensity[y] = sum / (hi - lo);
+        if (hi < H)  sum += rowDensity[hi++];
+        if (y >= BG_WIN) sum -= rowDensity[lo++];
+      }
+    }
+
+    // ── 4. Classify each row ──
+    // STRONG (2): dense visual content — hatching, fills, complex drawings
+    // MODERATE (1): diagram-scale structural line or saturated colour
+    const ABS_THRESH = 0.15;
+    const REL_FACTOR = 2.8, REL_MIN = 0.08;
+
+    const cand = new Uint8Array(H);
+    for (let y = 0; y < H; y++) {
+      const d = rowDensity[y], bg = bgDensity[y];
+      if (d > ABS_THRESH || (d > REL_MIN && d > bg * REL_FACTOR)) {
+        cand[y] = 2;
+      } else if ((rowMaxRun[y] >= MIN_RUN && rowMaxRun[y] <= MAX_RUN) || rowHasColor[y]) {
+        cand[y] = 1;
+      }
+    }
+
+    // ── 5. Zone expansion ──
+    const zone = new Uint8Array(H);
+    for (let y = 0; y < H; y++) {
+      if (!cand[y]) continue;
+      const exp = cand[y] === 2 ? 50 : 15;
+      const lo = Math.max(0, y - exp), hi = Math.min(H, y + exp + 1);
+      for (let yy = lo; yy < hi; yy++) if (rowDensity[yy] > 0.003) zone[yy] = 1;
+    }
+
+    // ── 6. Bridge sparse interiors between candidate rows ──
+    // Joins graph top-axis and bottom-axis into one block even when the interior is almost empty.
+    const BRIDGE_GAP = 200;
+    let lastCandY = -1;
+    for (let y = 0; y < H; y++) {
+      if (cand[y]) {
+        if (lastCandY >= 0 && y - lastCandY <= BRIDGE_GAP) {
+          for (let yy = lastCandY; yy <= y; yy++) if (rowDensity[yy] > 0.002) zone[yy] = 1;
+        }
+        lastCandY = y;
+      }
+    }
+
+    // ── 7. Find contiguous blocks ──
+    const MIN_H = 45;
+    const blocks = [];
+    let inBlk = false, bStart = 0;
+    for (let y = 0; y <= H; y++) {
+      if (y < H && zone[y] && !inBlk)   { inBlk = true; bStart = y; }
+      if ((y >= H || !zone[y]) && inBlk) {
+        inBlk = false;
+        if (y - bStart >= MIN_H) blocks.push({ y1: bStart, y2: y });
+      }
+    }
+
+    // ── 8. Quality filter ──
+    // strongRows    : rows with dense visual content
+    // anchorRows    : rows with a diagram-scale run
+    // anchorPerPx   : low = graph (few axis lines), high = table (many row-lines)
+    // avgD          : average density — text ~8–12%, sparse graph interior much lower
+    const figures = blocks.filter(b => {
+      const h = b.y2 - b.y1;
+      let strongRows = 0, anchorRows = 0, colorRows = 0, sumD = 0, maxD = 0;
+      for (let y = b.y1; y < b.y2; y++) {
+        if (cand[y] === 2) strongRows++;
+        if (rowMaxRun[y] >= MIN_RUN && rowMaxRun[y] <= MAX_RUN) anchorRows++;
+        if (rowHasColor[y]) colorRows++;
+        if (rowDensity[y] > maxD) maxD = rowDensity[y];
+        sumD += rowDensity[y];
+      }
+      const avgD = sumD / h;
+      const anchorPerPx = anchorRows / h;
+
+      // A: dense visual content (hatching, apparatus, illustrations)
+      if (strongRows >= 2) return true;
+      // B: structural diagram lines, tall block, NOT table-dense, NOT plain text
+      if (anchorRows >= 1 && h >= 55 && anchorPerPx < 0.035 && avgD < 0.11) return true;
+      // C: coloured diagram
+      if (colorRows >= 4 && h >= 40) return true;
+      return false;
+    });
+
+    if (!figures.length) {
+      showToast('No figures detected — try drawing crops manually');
+      return;
+    }
+
+    // ── 9. Create full-width crops ──
+    const PAD = 10;
+    let added = 0;
+    for (const f of figures) {
+      const y = Math.max(0, f.y1 - PAD);
+      const h = Math.min(H, f.y2 + PAD) - y;
+      if (h > 20) { createCrop(0, y, W, h); added++; }
+    }
+    drawOverlay(); updateCropsPanel();
+    showToast(`Detected ${added} figure${added !== 1 ? 's' : ''} — review & edit as needed`);
+
+  } catch (err) {
+    showToast('Detection error: ' + err.message);
+    console.error(err);
+  } finally {
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }
+}
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if(e.target.tagName === 'INPUT') return;
+  if((e.key === 'Delete' || e.key === 'Backspace') && selectedId) deleteCrop(selectedId);
+  if(e.key === 'ArrowLeft')  changePage(-1);
+  if(e.key === 'ArrowRight') changePage(1);
+  if((e.key === '+' || e.key === '=') && !e.ctrlKey && !e.metaKey) changeZoom(0.25);
+  if(e.key === '-' && !e.ctrlKey && !e.metaKey) changeZoom(-0.25);
+  if(e.key === 'Escape') { selectedId = null; drawOverlay(); updateCropsPanel(); }
+  if(e.key === 'f' || e.key === 'F') snapAllToFullWidth();
+  if(e.key === 'e' || e.key === 'E') exportAllCrops();
+  if(e.key === 'a' || e.key === 'A') autoDetectCrops();
+});
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── Init ──
+updateUI();
+</script>
 </body>
-
 </html>
