@@ -2,1039 +2,1306 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#1565C0">
-<title>PDF Crop Extractor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Science Form Builder</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#0f1729;--surface:#1a2540;--surface2:#222e4a;--border:#2d3f66;
-  --accent:#2979ff;--accent2:#448aff;--text:#e8eaf0;--text2:#8fa3c8;
-  --danger:#ef5350;--success:#66bb6a;--warn:#ffa726;
-  --handle:8px;--radius:10px;--radius-sm:6px;
+  --bg:#F0F4F8;--surface:#fff;--surface2:#F8FAFC;--border:#CBD5E1;
+  --accent:#1D4ED8;--accent-l:#DBEAFE;--accent-h:#1E40AF;
+  --green:#059669;--green-l:#D1FAE5;
+  --orange:#D97706;--orange-l:#FEF3C7;
+  --red:#DC2626;--red-l:#FEE2E2;
+  --purple:#7C3AED;--purple-l:#EDE9FE;
+  --text:#0F172A;--text2:#475569;--text3:#94A3B8;
+  --r:10px;--font:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --mono:'JetBrains Mono','Fira Code',monospace;
 }
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
 
-/* ── HEADER ── */
-#header{
-  display:flex;align-items:center;gap:8px;padding:10px 14px;
-  background:var(--surface);border-bottom:1px solid var(--border);
-  flex-shrink:0;z-index:10;
-}
-#logo{font-size:16px;font-weight:700;color:var(--accent2);white-space:nowrap;margin-right:4px}
-#logo span{color:var(--text2);font-weight:400}
-.hbtn{
-  display:flex;align-items:center;gap:5px;padding:7px 11px;
-  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);
-  color:var(--text);cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;
-  white-space:nowrap;-webkit-user-select:none;user-select:none;
-}
-.hbtn:hover{background:var(--border);border-color:var(--accent)}
-.hbtn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.hbtn.primary:hover{background:var(--accent2)}
-.hbtn svg{flex-shrink:0}
-#page-ctrl{display:flex;align-items:center;gap:6px;margin-left:auto}
-#page-num{min-width:90px;text-align:center;color:var(--text2);font-size:13px}
-#zoom-ctrl{display:flex;align-items:center;gap:4px}
-.sep{width:1px;height:24px;background:var(--border);margin:0 4px}
+/* HEADER */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:12px;height:56px;position:sticky;top:0;z-index:200;box-shadow:0 1px 0 var(--border)}
+.logo{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo svg{width:16px;height:16px}
+header h1{font-size:14px;font-weight:700;color:var(--text)}
+header p{font-size:11px;color:var(--text2)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+#hdr-status{font-size:11px;color:var(--text3)}
 
-/* ── LAYOUT ── */
-#app{display:flex;flex:1;overflow:hidden;height:calc(100vh - 53px)}
+/* STEP NAV */
+.step-nav{display:flex;align-items:center;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;overflow-x:auto}
+.step-item{display:flex;align-items:center;gap:7px;padding:13px 16px;font-size:12px;color:var(--text3);font-weight:500;border-bottom:2px solid transparent;white-space:nowrap;cursor:default;transition:color .2s,border-color .2s}
+.step-item.active{color:var(--accent);border-bottom-color:var(--accent)}
+.step-item.done{color:var(--green)}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:1.5px solid var(--border);flex-shrink:0}
+.step-item.active .step-num{background:var(--accent-l);border-color:var(--accent);color:var(--accent)}
+.step-item.done .step-num{background:var(--green-l);border-color:var(--green);color:var(--green)}
+.step-arr{color:var(--border);padding:0 2px;font-size:14px}
 
-/* ── CANVAS AREA ── */
-#canvas-area{
-  flex:1;overflow:auto;position:relative;background:var(--bg);
-  display:flex;justify-content:center;align-items:flex-start;padding:16px;
-}
-#canvas-wrap{position:relative;display:inline-block;box-shadow:0 4px 32px rgba(0,0,0,.6);border-radius:4px;overflow:hidden}
-#pdf-canvas{display:block;background:#fff}
-#overlay-canvas{position:absolute;top:0;left:0;cursor:crosshair;touch-action:none}
+/* LAYOUT */
+main{max-width:1100px;margin:0 auto;padding:24px 20px}
+.section{display:none}.section.visible{display:block}
 
-/* ── CROPS PANEL ── */
-#crops-panel{
-  width:240px;min-width:240px;background:var(--surface);
-  border-left:1px solid var(--border);display:flex;flex-direction:column;
-  overflow:hidden;flex-shrink:0;
-}
-#panel-head{
-  padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--border);flex-shrink:0;
-}
-#panel-head h3{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
-#crop-count{
-  background:var(--accent);color:#fff;border-radius:99px;
-  font-size:11px;font-weight:700;padding:1px 7px;
-}
-#crops-list{flex:1;overflow-y:auto;padding:8px}
-.crop-item{
-  background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius);
-  margin-bottom:8px;overflow:hidden;cursor:pointer;transition:border-color .15s;
-}
-.crop-item:hover{border-color:var(--accent2)}
-.crop-item.selected{border-color:var(--accent);box-shadow:0 0 0 2px rgba(41,121,255,.25)}
-.crop-thumb{width:100%;aspect-ratio:16/7;object-fit:cover;display:block;background:#1a1a2e}
-.crop-thumb-placeholder{
-  width:100%;aspect-ratio:16/7;display:flex;align-items:center;justify-content:center;
-  background:var(--bg);color:var(--text2);font-size:11px;
-}
-.crop-meta{padding:7px 10px;display:flex;align-items:center;justify-content:space-between;gap:4px}
-.crop-label{
-  font-size:12px;font-weight:600;color:var(--text);flex:1;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text;
-  border:1px solid transparent;border-radius:4px;padding:2px 4px;
-  background:transparent;color:var(--text);outline:none;width:100%;
-}
-.crop-label:focus{border-color:var(--accent);background:var(--bg)}
-.crop-actions{display:flex;gap:4px;flex-shrink:0}
-.icon-btn{
-  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
-  border:none;background:transparent;color:var(--text2);cursor:pointer;
-  border-radius:var(--radius-sm);transition:all .15s;
-}
-.icon-btn:hover{background:var(--border);color:var(--text)}
-.icon-btn.del:hover{color:var(--danger);background:rgba(239,83,80,.15)}
-.icon-btn.dl:hover{color:var(--success);background:rgba(102,187,106,.15)}
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:20px}
+.card-title{font-size:14px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card-desc{font-size:12px;color:var(--text2);margin-bottom:16px}
 
-/* ── PAGE GROUP HEADERS ── */
-.page-group{margin-bottom:4px}
-.page-group-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:5px 8px;margin-bottom:5px;
-  background:var(--bg);border-radius:var(--radius-sm);
-  font-size:11px;font-weight:700;color:var(--text2);
-  text-transform:uppercase;letter-spacing:.6px;position:sticky;top:0;z-index:2;
-}
-.page-group-header.current{color:var(--accent2)}
-.current-badge{
-  background:var(--accent);color:#fff;border-radius:99px;
-  font-size:10px;font-weight:700;padding:1px 6px;text-transform:none;letter-spacing:0;
-}
+/* UPLOAD */
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.upload-grid{grid-template-columns:1fr}}
+.drop-zone{border:2px dashed var(--border);border-radius:var(--r);padding:24px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-l)}
+.drop-zone.has-file{border-color:var(--green);background:var(--green-l)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:24px;margin-bottom:6px}
+.drop-label{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+.drop-sub{font-size:11px;color:var(--text2)}
 
-#panel-footer{
-  padding:10px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:6px;
-}
+/* INPUTS */
+input[type=text],input[type=password],select,textarea{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:var(--font);font-size:13px;color:var(--text);background:var(--surface);transition:border-color .2s;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.field-group{margin-bottom:12px}
+.field-group label,.fl{display:block;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.hint{font-size:11px;color:var(--text3);margin-top:3px}
 
-/* ── AUTO DETECT BUTTON ── */
-#autodetect-btn{
-  width:100%;background:linear-gradient(135deg,#6a1b9a,#4527a0);
-  border-color:#7b1fa2;color:#fff;
-}
-#autodetect-btn:hover:not(:disabled){background:linear-gradient(135deg,#7b1fa2,#512da8);border-color:#9c27b0}
-#autodetect-btn:disabled{opacity:.6;cursor:not-allowed}
-@keyframes spin{to{transform:rotate(360deg)}}
-.spin{display:inline-block;animation:spin .7s linear infinite}
-.detect-badge{
-  display:inline-flex;align-items:center;gap:3px;
-  background:rgba(255,255,255,.15);border-radius:4px;padding:1px 5px;font-size:10px;margin-left:4px;
-}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;line-height:1}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover:not(:disabled){background:var(--accent-h)}
+.btn-outline{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}.btn-outline:hover:not(:disabled){background:var(--accent-l)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover:not(:disabled){background:#047857}
+.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border)}.btn-ghost:hover:not(:disabled){background:var(--bg)}
+.btn-purple{background:var(--purple);color:#fff}.btn-purple:hover:not(:disabled){background:#6D28D9}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover:not(:disabled){background:#B91C1C}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-sm{padding:5px 10px;font-size:11px}
+.row-flex{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ml-auto{margin-left:auto}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
 
-#snap-btn{width:100%}
-#export-all-btn{width:100%;background:var(--success);border-color:var(--success);color:#fff}
-#export-all-btn:hover{background:#81c784}
+/* PROGRESS */
+.prog-bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:5px}
+.prog-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .4s}
+.prog-label{font-size:11px;color:var(--text2);display:flex;justify-content:space-between}
 
-/* ── EMPTY STATE ── */
-#empty-state{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  height:100%;text-align:center;padding:24px;color:var(--text2);gap:12px;
-}
-#empty-state svg{opacity:.3}
-#empty-state p{font-size:13px;line-height:1.5}
+/* ALERTS */
+.alert{display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:7px;font-size:12px;margin-bottom:12px}
+.alert-info{background:var(--accent-l);color:#1E40AF;border:1px solid #BFDBFE}
+.alert-warn{background:var(--orange-l);color:#92400E;border:1px solid #FDE68A}
+.alert-success{background:var(--green-l);color:#065F46;border:1px solid #A7F3D0}
+.alert-error{background:var(--red-l);color:#991B1B;border:1px solid #FECACA}
+.alert-icon{flex-shrink:0;font-size:13px;margin-top:1px}
 
-/* ── UPLOAD OVERLAY ── */
-#upload-overlay{
-  position:fixed;inset:0;background:var(--bg);z-index:100;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
-}
-#upload-zone{
-  border:2.5px dashed var(--border);border-radius:var(--radius);
-  padding:48px 40px;text-align:center;cursor:pointer;transition:all .2s;
-  max-width:400px;width:90%;
-}
-#upload-zone:hover,#upload-zone.drag-over{border-color:var(--accent);background:rgba(41,121,255,.06)}
-#upload-zone h2{font-size:20px;font-weight:700;margin-bottom:8px}
-#upload-zone p{color:var(--text2);font-size:14px;margin-bottom:20px}
-#upload-zone svg{margin-bottom:12px;opacity:.5}
-#file-input{display:none}
+/* STATS */
+.stats-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.stat-box{flex:1;min-width:75px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center}
+.stat-num{font-size:20px;font-weight:700;color:var(--accent)}
+.stat-lbl{font-size:10px;color:var(--text2)}
 
-/* ── TOOLBAR (bottom, mobile) ── */
-#toolbar{
-  display:none;padding:8px 12px;background:var(--surface);
-  border-top:1px solid var(--border);gap:6px;flex-shrink:0;
-}
+/* ═══ IMAGE EXTRACTOR ═══ */
+#ie-wrap{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;height:580px;background:#0f1729;margin-bottom:0}
+#ie-canvas-area{flex:1;overflow:auto;background:#0f1729;display:flex;justify-content:center;align-items:flex-start;padding:12px;position:relative}
+#ie-canvas-wrap{position:relative;display:inline-block;box-shadow:0 4px 24px rgba(0,0,0,.5);border-radius:3px;overflow:hidden}
+#ie-pdf-canvas{display:block;background:#fff}
+#ie-overlay-canvas{position:absolute;top:0;left:0;cursor:crosshair;touch-action:none}
+#ie-controls{display:flex;align-items:center;gap:5px;padding:7px 10px;background:#1a2540;border-bottom:1px solid #2d3f66;flex-shrink:0;flex-wrap:wrap}
+.ic{display:flex;align-items:center;gap:4px;padding:5px 8px;background:#222e4a;border:1px solid #2d3f66;border-radius:5px;color:#e8eaf0;cursor:pointer;font-size:11px;font-weight:500;white-space:nowrap;transition:all .15s}
+.ic:hover{background:#2d3f66;border-color:#448aff}.ic:disabled{opacity:.5;cursor:not-allowed}
+.ic.pri{background:#2979ff;border-color:#2979ff;color:#fff}.ic.pri:hover{background:#448aff}
+.ic.pur{background:linear-gradient(135deg,#6a1b9a,#4527a0);border-color:#7b1fa2;color:#fff}.ic.pur:hover{background:linear-gradient(135deg,#7b1fa2,#512da8)}
+.ic.suc{background:#059669;border-color:#059669;color:#fff}.ic.suc:hover{background:#047857}
+.ic-sep{width:1px;height:18px;background:#2d3f66;margin:0 1px}
+#ie-page-num{font-size:11px;color:#8fa3c8;min-width:60px;text-align:center}
+#ie-crops-panel{width:210px;min-width:210px;background:#1a2540;border-left:1px solid #2d3f66;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+#ie-panel-head{padding:9px 11px 7px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2d3f66;flex-shrink:0}
+#ie-panel-head h3{font-size:10px;font-weight:700;color:#8fa3c8;text-transform:uppercase;letter-spacing:.5px}
+#ie-crop-count{background:#2979ff;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px}
+#ie-crops-list{flex:1;overflow-y:auto;padding:6px}
+#ie-crops-list::-webkit-scrollbar{width:3px}
+#ie-crops-list::-webkit-scrollbar-thumb{background:#2d3f66;border-radius:2px}
+.ie-crop{background:#222e4a;border:1.5px solid #2d3f66;border-radius:7px;margin-bottom:5px;overflow:hidden;cursor:pointer;transition:border-color .15s}
+.ie-crop:hover{border-color:#448aff}.ie-crop.sel{border-color:#2979ff;box-shadow:0 0 0 2px rgba(41,121,255,.2)}
+.ie-thumb{width:100%;aspect-ratio:16/7;object-fit:cover;display:block;background:#0f1729}
+.ie-thumb-ph{height:38px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#8fa3c8;background:#0f1729}
+.ie-meta{padding:4px 7px;display:flex;align-items:center;gap:3px}
+.ie-lbl{font-size:10px;font-weight:600;color:#e8eaf0;flex:1;border:1px solid transparent;border-radius:3px;padding:2px 3px;background:transparent;outline:none;width:100%}
+.ie-lbl:focus{border-color:#2979ff;background:#0f1729}
+.ie-acts{display:flex;gap:2px;flex-shrink:0}
+.ie-ibtn{width:22px;height:22px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;color:#8fa3c8;cursor:pointer;border-radius:3px;transition:all .15s;font-size:11px}
+.ie-ibtn:hover{background:#2d3f66;color:#e8eaf0}
+.ie-ibtn.send:hover{color:#66bb6a;background:rgba(102,187,106,.15)}
+.ie-ibtn.del:hover{color:#ef5350;background:rgba(239,83,80,.15)}
+.ie-pg-hdr{display:flex;align-items:center;justify-content:space-between;padding:3px 5px;margin-bottom:3px;background:#0f1729;border-radius:3px;font-size:9px;font-weight:700;color:#8fa3c8;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:2}
+.ie-pg-hdr.cur{color:#448aff}
+#ie-panel-footer{padding:7px;border-top:1px solid #2d3f66;flex-shrink:0}
+#ie-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:16px;color:#8fa3c8;gap:8px;font-size:10px;line-height:1.5}
 
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+/* IMAGE LIBRARY */
+#img-library{display:flex;gap:8px;flex-wrap:wrap;padding:8px 0;min-height:54px}
+.lib-item{position:relative;border:2px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer;transition:border-color .15s;width:90px;flex-shrink:0}
+.lib-item:hover{border-color:var(--accent)}
+.lib-item img{width:100%;height:56px;object-fit:cover;display:block;background:var(--bg)}
+.lib-item-lbl{font-size:9px;padding:2px 4px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--surface)}
+.lib-item-hover{position:absolute;inset:0;background:rgba(29,78,216,.8);display:none;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700}
+.lib-item:hover .lib-item-hover{display:flex}
 
-/* ── TOAST ── */
-#toast{
-  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);
-  background:#333;color:#fff;padding:10px 18px;border-radius:99px;
-  font-size:13px;font-weight:500;transition:transform .25s;z-index:200;pointer-events:none;
-  white-space:nowrap;
-}
+/* ═══ EDITOR + PREVIEW SPLIT ═══ */
+#ep-wrap{display:grid;grid-template-columns:1fr 400px;gap:0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;min-height:580px}
+@media(max-width:800px){#ep-wrap{grid-template-columns:1fr}}
+#editor-side{border-right:1px solid var(--border);overflow-y:auto;padding:14px;background:var(--surface2)}
+#editor-side::-webkit-scrollbar{width:4px}
+#editor-side::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+#preview-side{overflow-y:auto;background:#f1f3f4;padding:14px}
+#preview-side::-webkit-scrollbar{width:4px}
+#preview-side::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:2px}
+
+/* Q CARDS */
+.q-card{border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:9px;transition:border-color .2s;background:var(--surface)}
+.q-card:hover{border-color:#94A3B8}
+.q-hdr{display:flex;align-items:center;gap:7px;padding:9px 11px;background:var(--surface2);border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.q-badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;flex-shrink:0}
+.b-mcq{background:#EDE9FE;color:#5B21B6}.b-oeq{background:#FEF9C3;color:#713F12}.b-img{background:#DBEAFE;color:#1D4ED8}
+.q-ttl{flex:1;font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.q-tog{color:var(--text3);font-size:15px;transition:transform .2s;flex-shrink:0}
+.q-body{padding:11px;display:none}
+.q-card.exp .q-body{display:block}
+.q-card.exp .q-tog{transform:rotate(180deg)}
+.drag-handle{cursor:grab;color:var(--text3);font-size:13px;padding:0 2px;flex-shrink:0}
+.drag-handle:active{cursor:grabbing}
+.q-card.dov-top{border-top:3px solid var(--accent)}
+.q-card.dov-bot{border-bottom:3px solid var(--accent)}
+.opt-list{display:flex;flex-direction:column;gap:5px;margin-bottom:5px}
+.opt-row{display:flex;align-items:center;gap:5px}
+.opt-row.is-ans .opt-ltr{background:var(--green-l);border-color:var(--green);color:var(--green)}
+.opt-ltr{width:22px;height:22px;background:var(--bg);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text2);flex-shrink:0}
+.opt-row input[type=text]{flex:1}
+.ans-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.ans-chip{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;border:1.5px solid var(--border);cursor:pointer;background:var(--surface);color:var(--text2);transition:all .15s}
+.ans-chip.sel{background:var(--green);color:#fff;border-color:var(--green)}
+.q-img-prev{width:100%;max-height:100px;object-fit:contain;border-radius:5px;border:1px solid var(--border);margin-bottom:7px;background:var(--bg)}
+
+/* GOOGLE FORM PREVIEW */
+.gf-wrap{max-width:600px;margin:0 auto}
+.gf-hdr{background:#fff;border-radius:8px 8px 0 0;border-top:10px solid #673AB7;padding:18px 22px;border:1px solid #e0e0e0;border-top-width:10px}
+.gf-title{font-size:20px;font-weight:400;color:#202124;font-family:'Google Sans',Arial,sans-serif;margin-bottom:4px}
+.gf-desc{font-size:12px;color:#5f6368;font-family:'Google Sans',Arial,sans-serif}
+.gf-item{background:#fff;border-radius:8px;padding:18px 22px;margin-top:8px;border:1px solid #e0e0e0;position:relative;transition:box-shadow .15s}
+.gf-item:hover{box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.gf-qnum{font-size:10px;font-weight:700;color:#9AA0A6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.gf-qtxt{font-size:13px;color:#202124;font-family:'Google Sans',Arial,sans-serif;margin-bottom:10px;line-height:1.5}
+.gf-qimg{width:100%;max-height:180px;object-fit:contain;border-radius:4px;margin-bottom:10px;background:#f8f9fa;display:block}
+.gf-opt{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.gf-radio{width:16px;height:16px;border-radius:50%;border:2px solid #9AA0A6;flex-shrink:0}
+.gf-opt.correct .gf-radio{border-color:var(--green);background:var(--green)}
+.gf-opt-txt{font-size:12px;color:#202124;font-family:'Google Sans',Arial,sans-serif}
+.gf-opt.correct .gf-opt-txt{color:var(--green);font-weight:600}
+.gf-ans-input{width:100%;border:none;border-bottom:1px solid #9AA0A6;padding:4px 0;font-size:12px;color:#9AA0A6;font-family:'Google Sans',Arial,sans-serif;outline:none;background:transparent}
+.gf-img-block{width:100%;max-height:180px;object-fit:contain;border-radius:4px;background:#f8f9fa;display:block}
+.gf-del{position:absolute;top:8px;right:8px;font-size:14px;color:var(--text3);cursor:pointer;opacity:0;transition:opacity .15s;background:none;border:none;padding:3px 6px;border-radius:4px}
+.gf-item:hover .gf-del{opacity:1}
+.gf-del:hover{background:var(--red-l);color:var(--red)}
+.gf-req{color:var(--red);margin-left:2px}
+.gf-feedback{font-size:11px;margin-top:7px;padding:5px 9px;border-radius:4px}
+.prev-empty{text-align:center;color:var(--text3);padding:40px 16px;font-size:12px}
+
+/* LOG */
+#page-log{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-top:10px}
+
+/* Script */
+.script-box{background:#0F172A;color:#E2E8F0;border-radius:var(--r);padding:16px;font-family:var(--mono);font-size:11px;line-height:1.7;overflow-x:auto;max-height:440px;overflow-y:auto;white-space:pre;position:relative}
+.copy-abs{position:absolute;top:9px;right:9px}
+
+/* Confidence */
+.c-hi{color:var(--green)}.c-mid{color:var(--orange)}.c-lo{color:var(--red)}
+
+/* Toast */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:#1e293b;color:#fff;padding:9px 16px;border-radius:99px;font-size:12px;font-weight:500;transition:transform .25s;z-index:999;pointer-events:none;white-space:nowrap}
 #toast.show{transform:translateX(-50%) translateY(0)}
-
-/* ── RESPONSIVE MOBILE ── */
-@media(max-width:640px){
-  #crops-panel{display:none}
-  #toolbar{display:flex;flex-wrap:wrap;justify-content:center}
-  #canvas-area{padding:8px}
-  #logo span{display:none}
-  #page-num{min-width:70px}
-}
+.spin{display:inline-block;animation:_sp .7s linear infinite}
+@keyframes _sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 
-<!-- Upload Overlay -->
-<div id="upload-overlay">
-  <div id="upload-zone" onclick="document.getElementById('file-input').click()">
-    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-    <h2>PDF Crop Extractor</h2>
-    <p>Upload a PDF to start extracting images.<br>Draw crop regions directly on the page.</p>
-    <div class="hbtn primary" style="justify-content:center;width:100%;max-width:200px;margin:0 auto">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      Upload PDF
-    </div>
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+      <rect x="9" y="3" width="6" height="4" rx="1"/>
+      <path d="M9 12h6M9 16h4"/>
+    </svg>
   </div>
-  <p style="color:var(--text2);font-size:12px">Works entirely offline · No data leaves your device</p>
-  <input type="file" id="file-input" accept=".pdf,application/pdf">
-</div>
+  <div><h1>Science Form Builder</h1><p>PDF → AI Extraction → Image Crops → Form Preview → Google Apps Script</p></div>
+  <div class="hdr-right"><span id="hdr-status">Ready</span></div>
+</header>
 
-<!-- Header -->
-<div id="header">
-  <div id="logo">Crop<span>PDF</span></div>
-  <div class="sep"></div>
-  <button class="hbtn" id="open-btn" onclick="document.getElementById('file-input2').click()">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-    Open PDF
-  </button>
-  <input type="file" id="file-input2" accept=".pdf,application/pdf" style="display:none">
-  <div class="sep"></div>
-  <div id="page-ctrl">
-    <button class="hbtn" id="prev-btn" onclick="changePage(-1)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <span id="page-num">— / —</span>
-    <button class="hbtn" id="next-btn" onclick="changePage(1)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-    </button>
-  </div>
-  <div class="sep"></div>
-  <div id="zoom-ctrl">
-    <button class="hbtn" onclick="changeZoom(-0.2)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    </button>
-    <button class="hbtn" id="zoom-label" onclick="changeZoom(0)" style="min-width:56px;justify-content:center">100%</button>
-    <button class="hbtn" onclick="changeZoom(0.2)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    </button>
-  </div>
-</div>
+<!-- STEP NAV -->
+<nav class="step-nav">
+  <div class="step-item active" id="nav-1"><div class="step-num">1</div>Upload</div>
+  <div class="step-arr">›</div>
+  <div class="step-item" id="nav-2"><div class="step-num">2</div>Extract Questions</div>
+  <div class="step-arr">›</div>
+  <div class="step-item" id="nav-3"><div class="step-num">3</div>Extract Images</div>
+  <div class="step-arr">›</div>
+  <div class="step-item" id="nav-4"><div class="step-num">4</div>Review &amp; Preview</div>
+  <div class="step-arr">›</div>
+  <div class="step-item" id="nav-5"><div class="step-num">5</div>Export Script</div>
+</nav>
 
-<!-- Main App -->
-<div id="app">
-  <!-- Canvas Area -->
-  <div id="canvas-area">
-    <div id="canvas-wrap">
-      <canvas id="pdf-canvas"></canvas>
-      <canvas id="overlay-canvas"></canvas>
-    </div>
-  </div>
+<main>
 
-  <!-- Crops Panel -->
-  <div id="crops-panel">
-    <div id="panel-head">
-      <h3>Crop Regions</h3>
-      <span id="crop-count">0</span>
+<!-- SEC 1: UPLOAD -->
+<div class="section visible" id="sec-1">
+  <div class="card">
+    <div class="card-title">🔑 Anthropic API Key</div>
+    <div class="card-desc">Used only in your browser to call Claude Vision. Never sent to any server other than Anthropic's API.</div>
+    <div class="row-flex" style="margin-bottom:10px">
+      <div style="flex:1"><input type="password" id="api-key" placeholder="sk-ant-api03-…" autocomplete="off"></div>
+      <button class="btn btn-ghost" onclick="toggleKey()">Show</button>
     </div>
-    <div id="crops-list">
-      <div id="empty-state">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-        <p>Draw on the PDF to<br>create crop regions</p>
+    <div class="hint">Get a key at <a href="https://console.anthropic.com/keys" target="_blank" style="color:var(--accent)">console.anthropic.com/keys</a></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📄 Upload Worksheets</div>
+    <div class="card-desc">Upload the <strong>question PDF</strong> and optionally the <strong>answer/mark scheme PDF</strong>. The question PDF will also be used for image extraction in Step 3.</div>
+    <div class="upload-grid">
+      <div>
+        <p class="fl" style="margin-bottom:6px">Questions PDF</p>
+        <div class="drop-zone" id="drop-q" onclick="document.getElementById('file-q').click()">
+          <div class="drop-icon">📝</div>
+          <div class="drop-label">Click or drag PDF here</div>
+          <div class="drop-sub">Question paper / worksheet</div>
+          <input type="file" id="file-q" accept=".pdf" onchange="handleFile('q',this)">
+        </div>
+      </div>
+      <div>
+        <p class="fl" style="margin-bottom:6px">Answers / Mark Scheme PDF</p>
+        <div class="drop-zone" id="drop-a" onclick="document.getElementById('file-a').click()">
+          <div class="drop-icon">✅</div>
+          <div class="drop-label">Click or drag PDF here</div>
+          <div class="drop-sub">Answer key or marking scheme (optional)</div>
+          <input type="file" id="file-a" accept=".pdf" onchange="handleFile('a',this)">
+        </div>
       </div>
     </div>
-    <div id="panel-footer">
-      <button class="hbtn" id="autodetect-btn" onclick="autoDetectCrops()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M11 8v3l2 2"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        Auto Detect Figures
-        <span class="detect-badge">AI</span>
-      </button>
-      <button class="hbtn" id="snap-btn" onclick="snapAllToFullWidth()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><polyline points="8 8 3 3 8 3"/><polyline points="16 8 21 3 16 3"/><polyline points="8 16 3 21 8 21"/><polyline points="16 16 21 21 16 21"/></svg>
-        Snap All to Full Width
-      </button>
-      <button class="hbtn primary" id="export-all-btn" onclick="exportAllCrops()" style="background:var(--success);border-color:var(--success)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export All Crops
-      </button>
+    <div class="divider"></div>
+    <div class="field-group"><label>Form Title</label><input type="text" id="form-title" value="Primary Science Worksheet" oninput="document.getElementById('preview-title').textContent=this.value"></div>
+    <div class="row-flex">
+      <div style="max-width:200px;flex:1">
+        <label class="fl">Extraction Mode</label>
+        <select id="detail-lvl"><option value="standard">Standard (faster)</option><option value="thorough" selected>Thorough (recommended)</option></select>
+      </div>
+      <button class="btn btn-primary ml-auto" id="btn-extract" onclick="startExtraction()" disabled>Extract Questions →</button>
     </div>
   </div>
 </div>
 
-<!-- Mobile Toolbar -->
-<div id="toolbar">
-  <button class="hbtn" onclick="snapAllToFullWidth()">↔ Full Width</button>
-  <button class="hbtn" onclick="deleteSelectedCrop()" style="color:var(--danger)">🗑 Delete</button>
-  <button class="hbtn primary" onclick="exportAllCrops()">⬇ Export All</button>
+<!-- SEC 2: EXTRACTING -->
+<div class="section" id="sec-2">
+  <div class="card">
+    <div class="card-title">🔍 Extracting with Claude Vision</div>
+    <div class="card-desc">Each PDF page is rendered as an image and read by Claude. Uncertain text is flagged as [UNCLEAR] — never guessed.</div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="prog-label"><span id="prog-lbl">Starting…</span><span id="prog-pct">0%</span></div>
+    <div id="page-log"></div>
+  </div>
+</div>
+
+<!-- SEC 3: IMAGE EXTRACTOR -->
+<div class="section" id="sec-3">
+  <div class="card" style="padding:14px">
+    <div class="row-flex" style="margin-bottom:12px">
+      <div>
+        <div class="card-title">🖼 Extract Images from PDF</div>
+        <div class="card-desc" style="margin-bottom:0">Draw crop regions on the PDF. Use <strong>Auto Detect</strong> for figures. Click <strong>↗ Send to Form</strong> on any crop to add it to the form.</div>
+      </div>
+      <div class="ml-auto row-flex">
+        <button class="btn btn-ghost btn-sm" onclick="ieOpenDiff()">📂 Open Different PDF</button>
+        <button class="btn btn-primary" onclick="showSection(4);renderEditorAndPreview()">Continue to Preview →</button>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div id="ie-controls">
+      <button class="ic" onclick="ieChangePage(-1)" id="ie-prev">◀</button>
+      <span id="ie-page-num">— / —</span>
+      <button class="ic" onclick="ieChangePage(1)" id="ie-next">▶</button>
+      <div class="ic-sep"></div>
+      <button class="ic" onclick="ieZoom(-0.2)">−</button>
+      <button class="ic" id="ie-zoom-lbl" onclick="ieZoom(0)" style="min-width:46px;justify-content:center">100%</button>
+      <button class="ic" onclick="ieZoom(0.2)">+</button>
+      <div class="ic-sep"></div>
+      <button class="ic pur" onclick="ieAutoDetect()" id="ie-auto-btn">✦ Auto Detect Figures</button>
+      <button class="ic" onclick="ieSnapAll()">↔ Full Width</button>
+      <div class="ic-sep"></div>
+      <button class="ic suc" onclick="ieSendAll()">↗ Send All to Form</button>
+      <button class="ic" onclick="ieExportAll()">⬇ Export All</button>
+    </div>
+
+    <!-- Canvas + Crops Panel -->
+    <div id="ie-wrap">
+      <div id="ie-canvas-area">
+        <div id="ie-canvas-wrap">
+          <canvas id="ie-pdf-canvas"></canvas>
+          <canvas id="ie-overlay-canvas"></canvas>
+        </div>
+      </div>
+      <div id="ie-crops-panel">
+        <div id="ie-panel-head"><h3>Crop Regions</h3><span id="ie-crop-count">0</span></div>
+        <div id="ie-crops-list">
+          <div id="ie-empty"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Draw on the PDF to create crop regions, or use Auto Detect</div>
+        </div>
+        <div id="ie-panel-footer">
+          <button class="ic suc" style="width:100%" onclick="ieSendAll()">↗ Send All to Form</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Library -->
+    <div style="margin-top:14px">
+      <div class="row-flex" style="margin-bottom:6px">
+        <span class="fl" style="margin:0">🗂 Form Image Library (<span id="lib-count">0</span>)</span>
+        <span class="hint ml-auto">Click any image to insert it into the form between questions</span>
+      </div>
+      <div id="img-library"><div style="font-size:11px;color:var(--text3);padding:10px 0">No images added yet. Draw crops and click ↗ Send to Form.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SEC 4: EDITOR + PREVIEW -->
+<div class="section" id="sec-4">
+  <div class="card" style="padding:14px">
+    <div class="row-flex" style="margin-bottom:12px">
+      <div>
+        <div class="card-title">✏️ Review &amp; Form Preview</div>
+        <div class="card-desc" style="margin-bottom:0">Left: edit questions. Right: live Google Form preview. Drag to reorder items. Insert images from the library.</div>
+      </div>
+      <div class="ml-auto row-flex">
+        <button class="btn btn-ghost btn-sm" onclick="showSection(3)">← Images</button>
+        <button class="btn btn-ghost btn-sm" onclick="addQuestion()">+ Question</button>
+        <button class="btn btn-purple btn-sm" onclick="showImgLibModal()">🖼 Insert Image</button>
+        <button class="btn btn-primary" onclick="goExport()">Generate Script →</button>
+      </div>
+    </div>
+    <div class="stats-row" id="stats-row"></div>
+    <div id="alert-box"></div>
+    <div id="ep-wrap">
+      <div id="editor-side"><div id="qcont"></div></div>
+      <div id="preview-side">
+        <div class="gf-wrap">
+          <div class="gf-hdr">
+            <div class="gf-title" id="preview-title">Primary Science Worksheet</div>
+            <div class="gf-desc" id="preview-desc">Auto-generated from PDF worksheet</div>
+          </div>
+          <div id="gf-items"></div>
+          <div class="prev-empty" id="prev-empty">Add questions to see the form preview</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SEC 5: EXPORT -->
+<div class="section" id="sec-5">
+  <div class="card">
+    <div class="card-title">🚀 Google Apps Script</div>
+    <div class="card-desc">Copy and paste into <a href="https://script.google.com" target="_blank" style="color:var(--accent)">script.google.com</a> → New project → Run <code>createForm()</code> → Authorize → done. Your form appears in Google Drive.</div>
+    <div class="alert alert-info">
+      <span class="alert-icon">ℹ️</span>
+      <div><strong>Images:</strong> Google Forms API does not support programmatic image insertion. Image blocks appear as placeholder comments in the script. After running the script, open the form editor and add the images manually at the marked positions.</div>
+    </div>
+    <div style="position:relative">
+      <pre class="script-box" id="script-out"></pre>
+      <button class="btn btn-outline btn-sm copy-abs" id="copy-btn" onclick="copyScript()">📋 Copy</button>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="showSection(4)">← Back</button>
+      <button class="btn btn-green" onclick="dlScript()">⬇ Download .gs</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- Image Library Modal -->
+<div id="img-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--r);padding:24px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div class="row-flex" style="margin-bottom:14px">
+      <div class="card-title" style="margin:0">🖼 Insert Image into Form</div>
+      <button class="btn btn-ghost btn-sm ml-auto" onclick="closeImgModal()">✕ Close</button>
+    </div>
+    <div id="modal-lib-grid" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+    <div class="hint" style="margin-top:10px">Click an image to insert it at the end of the form. Then drag to reorder.</div>
+  </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-// ── PDF.js setup ──
+// ═══════════════════════════════════════════════════════
+// PDF.js
+// ═══════════════════════════════════════════════════════
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ── State ──
-let pdfDoc = null, currentPage = 1, totalPages = 0, scale = 1.5;
-let crops = {};
-let cropCounter = 0;
-let selectedId = null;
-let interacting = false, interactMode = null;
-let pointerStart = {x:0,y:0}, pointerCurrent = {x:0,y:0};
-let moveOffset = {x:0,y:0};
-let resizeHandle = null;
-const HANDLE_R = 6, HANDLE_HIT = 14;
+// ═══════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════
+const S = {
+  apiKey:'', qFile:null, aFile:null,
+  questions:[],   // [{id,number,type,text,options,correctAnswer,feedback,confidence,answerMatched,image}]
+  formItems:[],   // [{type:'question',qIdx} | {type:'image',libId,src,label}]
+  imageLib:[],    // [{id,src,label}]
+  libCounter:0,
+};
 
-// ── DOM ──
-const pdfCanvas     = document.getElementById('pdf-canvas');
-const overlayCanvas = document.getElementById('overlay-canvas');
-const oc            = overlayCanvas.getContext('2d');
-const pageNumEl     = document.getElementById('page-num');
-const zoomLabel     = document.getElementById('zoom-label');
-const cropsList     = document.getElementById('crops-list');
-const cropCount     = document.getElementById('crop-count');
+// ═══════════════════════════════════════════════════════
+// IMAGE EXTRACTOR STATE
+// ═══════════════════════════════════════════════════════
+let iePdf=null, iePage=1, ieTotal=0, ieScale=1.5;
+let ieSel=null, ieInter=false, ieMode=null;
+let ieStart={x:0,y:0}, ieCur={x:0,y:0}, ieMOff={x:0,y:0};
+let ieRH=null, ieCropCnt=0, ieAllCrops={};
+const HIT=14, HR=6;
+const iePdfCv  = ()=>document.getElementById('ie-pdf-canvas');
+const ieOvCv   = ()=>document.getElementById('ie-overlay-canvas');
+const ieOvCtx  = ()=>ieOvCv().getContext('2d');
 
-// ── File inputs ──
-['file-input','file-input2'].forEach(id => {
-  document.getElementById(id).addEventListener('change', e => {
-    if(e.target.files[0]) loadPDF(e.target.files[0]);
+// ═══════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════
+function showSection(n){
+  [1,2,3,4,5].forEach(i=>{
+    document.getElementById('sec-'+i).classList.toggle('visible',i===n);
+    const nav=document.getElementById('nav-'+i);
+    nav.classList.remove('active','done');
+    if(i===n) nav.classList.add('active');
+    else if(i<n) nav.classList.add('done');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// STEP 1 — UPLOAD
+// ═══════════════════════════════════════════════════════
+function toggleKey(){
+  const el=document.getElementById('api-key'),b=el.nextElementSibling;
+  el.type=el.type==='password'?'text':'password';
+  b.textContent=el.type==='password'?'Show':'Hide';
+}
+function handleFile(w,inp){
+  const f=inp.files[0];if(!f) return;
+  const z=document.getElementById('drop-'+w);
+  z.classList.add('has-file');
+  z.querySelector('.drop-icon').textContent='✅';
+  z.querySelector('.drop-label').textContent=f.name;
+  z.querySelector('.drop-sub').textContent=(f.size/1048576).toFixed(2)+' MB';
+  if(w==='q') S.qFile=f; else S.aFile=f;
+  checkReady();
+}
+['drop-q','drop-a'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('drag-over')});
+  el.addEventListener('dragleave',()=>el.classList.remove('drag-over'));
+  el.addEventListener('drop',e=>{
+    e.preventDefault();el.classList.remove('drag-over');
+    const f=e.dataTransfer.files[0];
+    if(f&&f.type==='application/pdf') handleFile(id==='drop-q'?'q':'a',{files:[f]});
   });
 });
+document.getElementById('api-key').addEventListener('input',checkReady);
+function checkReady(){
+  document.getElementById('btn-extract').disabled=!(document.getElementById('api-key').value.trim()&&S.qFile);
+}
 
-const uploadZone = document.getElementById('upload-zone');
-uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-uploadZone.addEventListener('drop', e => {
-  e.preventDefault(); uploadZone.classList.remove('drag-over');
-  if(e.dataTransfer.files[0]) loadPDF(e.dataTransfer.files[0]);
-});
-document.getElementById('app').addEventListener('dragover', e => e.preventDefault());
-document.getElementById('app').addEventListener('drop', e => {
-  e.preventDefault();
-  if(e.dataTransfer.files[0]) loadPDF(e.dataTransfer.files[0]);
-});
-
-// ── Load PDF ──
-async function loadPDF(file) {
-  if(!file.name.endsWith('.pdf') && file.type !== 'application/pdf') {
-    showToast('Please upload a PDF file'); return;
+// ═══════════════════════════════════════════════════════
+// STEP 2 — EXTRACTION
+// ═══════════════════════════════════════════════════════
+async function pdfToImages(file,sc=2.0){
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  const pages=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const pg=await pdf.getPage(i);
+    const vp=pg.getViewport({scale:sc});
+    const cv=document.createElement('canvas');
+    cv.width=vp.width;cv.height=vp.height;
+    await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+    pages.push({num:i,b64:cv.toDataURL('image/jpeg',.92).split(',')[1],total:pdf.numPages});
   }
-  const arr = await file.arrayBuffer();
-  pdfDoc = await pdfjsLib.getDocument({data: arr}).promise;
-  totalPages = pdfDoc.numPages;
-  currentPage = 1;
-  crops = {};
-  selectedId = null;
-  document.getElementById('upload-overlay').style.display = 'none';
-  await renderPage(currentPage);
-  updateUI();
-  showToast(`Loaded "${file.name}" · ${totalPages} page${totalPages>1?'s':''}`);
+  return pages;
 }
 
-// ── Render Page ──
-async function renderPage(num) {
-  if(!pdfDoc) return;
-  const page = await pdfDoc.getPage(num);
-  const viewport = page.getViewport({scale});
-  pdfCanvas.width  = viewport.width;
-  pdfCanvas.height = viewport.height;
-  overlayCanvas.width  = viewport.width;
-  overlayCanvas.height = viewport.height;
-  await page.render({canvasContext: pdfCanvas.getContext('2d'), viewport}).promise;
-  drawOverlay();
-  updateCropsPanel();
-}
-
-// ── Page / Zoom navigation ──
-async function changePage(delta) {
-  if(!pdfDoc) return;
-  if(delta === 0) { scale = 1.5; }
-  else {
-    const np = currentPage + delta;
-    if(np < 1 || np > totalPages) return;
-    currentPage = np;
+async function startExtraction(){
+  S.apiKey=document.getElementById('api-key').value.trim();
+  if(!S.apiKey) return alert('Please enter your Anthropic API key.');
+  if(!S.qFile) return alert('Please upload a question PDF.');
+  showSection(2);setP(0,'Loading PDF pages…');addLog('info','Loading PDFs…');
+  try{
+    const qPgs=await pdfToImages(S.qFile);
+    const aPgs=S.aFile?await pdfToImages(S.aFile):[];
+    const tot=qPgs.length+aPgs.length;let done=0;
+    addLog('success',`Questions PDF: ${qPgs.length} page(s)`);
+    if(aPgs.length) addLog('success',`Answers PDF: ${aPgs.length} page(s)`);
+    setP(5,'Sending to Claude Vision…');
+    const rawQ=[],rawA=[];
+    for(const pg of qPgs){
+      setP(5+Math.round((done/tot)*70),`Reading Q-page ${pg.num}…`);
+      const r=await extractPage(pg.b64,'questions',pg.num);
+      if(r.questions?.length){rawQ.push(...r.questions);addLog('success',`Page ${pg.num}: ${r.questions.length} question(s)`);}
+      else addLog('warn',`Page ${pg.num}: no questions found`);
+      done++;
+    }
+    for(const pg of aPgs){
+      setP(5+Math.round((done/tot)*70),`Reading A-page ${pg.num}…`);
+      const r=await extractPage(pg.b64,'answers',pg.num);
+      if(r.answers?.length){rawA.push(...r.answers);addLog('success',`Page ${pg.num}: ${r.answers.length} answer(s)`);}
+      else addLog('warn',`Page ${pg.num}: no answers found`);
+      done++;
+    }
+    setP(88,'Matching answers to questions…');
+    S.questions=matchAnswers(rawQ,rawA);
+    S.formItems=S.questions.map((_,i)=>({type:'question',qIdx:i}));
+    addLog('success',`Complete! ${S.questions.length} question(s) ready.`);
+    setP(100,'Done!');
+    setTimeout(async()=>{
+      if(S.qFile) await ieLoadFile(S.qFile);
+      showSection(3);
+    },600);
+  }catch(err){
+    addLog('error','Error: '+(err.message||err));
+    setP(0,'Extraction failed — see error above');
   }
-  await renderPage(currentPage);
-  updateUI();
 }
 
-async function changeZoom(delta) {
-  if(!pdfDoc) return;
-  if(delta === 0) { scale = 1.5; }
-  else { scale = Math.max(0.5, Math.min(4, scale + delta)); }
-  await renderPage(currentPage);
-  updateUI();
+async function extractPage(b64,mode,pageNum){
+  const isQ=mode==='questions';
+  const prompt=isQ
+    ?`Extract science exam questions from this worksheet image.\nSTRICT RULES: Only transcribe text you can CLEARLY see. Use [UNCLEAR] for anything uncertain. NEVER guess or fill in content.\nFor MCQ: list all answer options exactly as printed. For open-ended: note it as type "open".\nReturn ONLY valid JSON (no markdown fences, no preamble):\n{"questions":[{"id":"Q1","number":"1","type":"mcq","text":"exact question text","options":["A. text","B. text","C. text","D. text"],"confidence":"high","pageRef":${pageNum}}]}\nIf no questions on this page: {"questions":[]}`
+    :`Extract answers from this answer key or marking scheme image.\nSTRICT RULES: Only transcribe text clearly visible. Use [UNCLEAR] for uncertain content. Never guess.\nReturn ONLY valid JSON (no markdown):\n{"answers":[{"questionNumber":"1","answer":"B","feedback":"exact model answer text","confidence":"high"}]}\nIf no answers: {"answers":[]}`;
+
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':S.apiKey,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4096,messages:[{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+      {type:'text',text:prompt}
+    ]}]})
+  });
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||`API ${resp.status}`);}
+  const data=await resp.json();
+  const text=data.content.map(c=>c.text||'').join('');
+  try{return JSON.parse(text.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim());}
+  catch{return isQ?{questions:[]}:{answers:[]}}
 }
 
-function updateUI() {
-  pageNumEl.textContent = pdfDoc ? `${currentPage} / ${totalPages}` : '— / —';
-  zoomLabel.textContent = Math.round(scale/1.5*100) + '%';
-  document.getElementById('prev-btn').disabled = currentPage <= 1;
-  document.getElementById('next-btn').disabled = currentPage >= totalPages;
+function matchAnswers(qs,as){
+  const map={};
+  as.forEach(a=>{map[String(a.questionNumber||'').trim().toLowerCase()]=a;});
+  return qs.map((q,i)=>{
+    const ans=map[String(q.number||'').trim().toLowerCase()]||null;
+    return{id:q.id||'Q'+(i+1),number:q.number||String(i+1),type:q.type||'mcq',
+      text:q.text||'',options:q.options||[],
+      correctAnswer:ans?ans.answer:'',feedback:ans?ans.feedback||'':'',
+      confidence:minConf(q.confidence,ans?.confidence),
+      pageRef:q.pageRef||1,answerMatched:!!ans,image:null};
+  });
+}
+function minConf(a,b){const r={high:3,mid:2,low:1};return(Math.min(r[a]??2,r[b]??2))===3?'high':(Math.min(r[a]??2,r[b]??2))===2?'mid':'low';}
+
+function setP(pct,lbl){
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-lbl').textContent=lbl;
+  document.getElementById('prog-pct').textContent=pct+'%';
+  document.getElementById('hdr-status').textContent=lbl;
+}
+function addLog(type,msg){
+  const log=document.getElementById('page-log');
+  const icons={info:'ℹ️',success:'✅',warn:'⚠️',error:'❌'};
+  const cls={info:'alert-info',success:'alert-success',warn:'alert-warn',error:'alert-error'};
+  const el=document.createElement('div');
+  el.className='alert '+cls[type];el.style.cssText='padding:6px 10px;margin:0;font-size:11px';
+  el.innerHTML=`<span class="alert-icon">${icons[type]}</span><span>${msg}</span>`;
+  log.appendChild(el);log.scrollTop=log.scrollHeight;
 }
 
-// ── Canvas coordinates ──
-function getPos(e) {
-  const r = overlayCanvas.getBoundingClientRect();
-  const scaleX = overlayCanvas.width / r.width;
-  const scaleY = overlayCanvas.height / r.height;
-  let cx, cy;
-  if(e.touches) {
-    cx = (e.touches[0].clientX - r.left) * scaleX;
-    cy = (e.touches[0].clientY - r.top)  * scaleY;
-  } else {
-    cx = (e.clientX - r.left) * scaleX;
-    cy = (e.clientY - r.top)  * scaleY;
-  }
-  return {x: cx, y: cy};
+// ═══════════════════════════════════════════════════════
+// STEP 3 — IMAGE EXTRACTOR (ported from Image_extractor.html)
+// ═══════════════════════════════════════════════════════
+(function(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.pdf';inp.style.display='none';
+  inp.addEventListener('change',e=>{if(e.target.files[0]) ieLoadFile(e.target.files[0]);});
+  document.body.appendChild(inp);window._ieInp=inp;
+})();
+function ieOpenDiff(){window._ieInp.click();}
+
+async function ieLoadFile(file){
+  const buf=await file.arrayBuffer();
+  iePdf=await pdfjsLib.getDocument({data:buf}).promise;
+  ieTotal=iePdf.numPages;iePage=1;ieAllCrops={};ieSel=null;
+  await ieRender(iePage);ieUpdateUI();
+  showToast(`"${file.name}" · ${ieTotal} page(s) loaded`);
+}
+async function ieRender(num){
+  if(!iePdf) return;
+  const pg=await iePdf.getPage(num);
+  const vp=pg.getViewport({scale:ieScale});
+  const cv=iePdfCv(),ov=ieOvCv();
+  cv.width=vp.width;cv.height=vp.height;
+  ov.width=vp.width;ov.height=vp.height;
+  await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+  ieDrawOv();ieUpdatePanel();
+}
+async function ieChangePage(d){
+  if(!iePdf) return;
+  if(d===0){ieScale=1.5;}
+  else{const np=iePage+d;if(np<1||np>ieTotal) return;iePage=np;}
+  await ieRender(iePage);ieUpdateUI();
+}
+async function ieZoom(d){
+  if(!iePdf) return;
+  ieScale=d===0?1.5:Math.max(.5,Math.min(4,ieScale+d));
+  await ieRender(iePage);ieUpdateUI();
+}
+function ieUpdateUI(){
+  document.getElementById('ie-page-num').textContent=iePdf?`${iePage} / ${ieTotal}`:'— / —';
+  document.getElementById('ie-zoom-lbl').textContent=Math.round(ieScale/1.5*100)+'%';
+  document.getElementById('ie-prev').disabled=iePage<=1;
+  document.getElementById('ie-next').disabled=iePage>=ieTotal;
 }
 
-function normalizeRect(x, y, w, h) {
-  return {
-    x: w < 0 ? x + w : x,
-    y: h < 0 ? y + h : y,
-    w: Math.abs(w),
-    h: Math.abs(h)
-  };
+// Hit testing
+function iePos(e){
+  const r=ieOvCv().getBoundingClientRect();
+  const sx=ieOvCv().width/r.width,sy=ieOvCv().height/r.height;
+  const s=e.touches?e.touches[0]:e;
+  return{x:(s.clientX-r.left)*sx,y:(s.clientY-r.top)*sy};
 }
-
-// ── Hit testing ──
-function getHandles(crop) {
-  const {x,y,w,h} = crop;
-  return {
-    nw:{x,y}, n:{x:x+w/2,y}, ne:{x:x+w,y},
-    e:{x:x+w,y:y+h/2},
-    se:{x:x+w,y:y+h}, s:{x:x+w/2,y:y+h}, sw:{x,y:y+h},
-    w:{x,y:y+h/2}
-  };
+function ieHandles(c){
+  const{x,y,w,h}=c;
+  return{nw:{x,y},n:{x:x+w/2,y},ne:{x:x+w,y},e:{x:x+w,y:y+h/2},
+    se:{x:x+w,y:y+h},s:{x:x+w/2,y:y+h},sw:{x,y:y+h},w:{x,y:y+h/2}};
 }
-
-function hitHandle(px, py, crop) {
-  const handles = getHandles(crop);
-  for(const [key, {x,y}] of Object.entries(handles)) {
-    if(Math.abs(px-x) <= HANDLE_HIT && Math.abs(py-y) <= HANDLE_HIT) return key;
-  }
+function ieHitHnd(px,py,c){
+  for(const[k,{x,y}] of Object.entries(ieHandles(c)))
+    if(Math.abs(px-x)<=HIT&&Math.abs(py-y)<=HIT) return k;
   return null;
 }
-
-function hitCropBody(px, py, crop) {
-  return px >= crop.x && px <= crop.x+crop.w && py >= crop.y && py <= crop.y+crop.h;
+function ieHitBody(px,py,c){return px>=c.x&&px<=c.x+c.w&&py>=c.y&&py<=c.y+c.h;}
+function ieHit(px,py){
+  const list=(ieAllCrops[iePage]||[]).slice().reverse();
+  for(const c of list){
+    const h=ieHitHnd(px,py,c);if(h) return{type:'handle',crop:c,handle:h};
+    if(ieHitBody(px,py,c)) return{type:'body',crop:c};
+  }
+  return{type:'none'};
 }
+function ieNorm(x,y,w,h){return{x:w<0?x+w:x,y:h<0?y+h:y,w:Math.abs(w),h:Math.abs(h)};}
 
-function hitTest(px, py) {
-  const pageCrops = (crops[currentPage] || []).slice().reverse();
-  for(const crop of pageCrops) {
-    const h = hitHandle(px, py, crop);
-    if(h) return {type:'handle', crop, handle:h};
-    if(hitCropBody(px, py, crop)) return {type:'body', crop};
+// Draw overlay
+function ieDrawOv(){
+  const ov=ieOvCv(),ctx=ieOvCtx(),W=ov.width,H=ov.height;
+  ctx.clearRect(0,0,W,H);
+  const list=ieAllCrops[iePage]||[];
+  if(list.length){
+    ctx.save();ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation='destination-out';
+    for(const c of list){ctx.fillStyle='rgba(0,0,0,1)';ctx.fillRect(c.x,c.y,c.w,c.h);}
+    ctx.restore();
   }
-  return {type:'none'};
-}
-
-// ── Draw Overlay ──
-function drawOverlay() {
-  const W = overlayCanvas.width, H = overlayCanvas.height;
-  oc.clearRect(0, 0, W, H);
-  const pageCrops = crops[currentPage] || [];
-
-  if(pageCrops.length > 0) {
-    oc.save();
-    oc.fillStyle = 'rgba(0,0,0,0.55)';
-    oc.fillRect(0, 0, W, H);
-    oc.globalCompositeOperation = 'destination-out';
-    for(const crop of pageCrops) {
-      oc.fillStyle = 'rgba(0,0,0,1)';
-      oc.fillRect(crop.x, crop.y, crop.w, crop.h);
-    }
-    oc.restore();
+  if(ieInter&&ieMode==='create'){
+    const r=ieNorm(ieStart.x,ieStart.y,ieCur.x-ieStart.x,ieCur.y-ieStart.y);
+    ctx.save();ctx.strokeStyle='#FFEB3B';ctx.lineWidth=2;ctx.setLineDash([6,3]);
+    ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.fillStyle='rgba(255,235,59,.08)';ctx.fillRect(r.x,r.y,r.w,r.h);ctx.restore();
   }
-
-  if(interacting && interactMode === 'create') {
-    const r = normalizeRect(
-      pointerStart.x, pointerStart.y,
-      pointerCurrent.x - pointerStart.x,
-      pointerCurrent.y - pointerStart.y
-    );
-    oc.save();
-    oc.strokeStyle = '#FFEB3B';
-    oc.lineWidth = 2;
-    oc.setLineDash([6,3]);
-    oc.strokeRect(r.x, r.y, r.w, r.h);
-    oc.fillStyle = 'rgba(255,235,59,0.08)';
-    oc.fillRect(r.x, r.y, r.w, r.h);
-    oc.restore();
-  }
-
-  for(const crop of pageCrops) {
-    const sel = crop.id === selectedId;
-    oc.save();
-    oc.strokeStyle = sel ? '#448aff' : 'rgba(100,181,246,0.7)';
-    oc.lineWidth = sel ? 2 : 1.5;
-    oc.setLineDash(sel ? [] : [5,4]);
-    oc.strokeRect(crop.x + 0.5, crop.y + 0.5, crop.w, crop.h);
-    oc.restore();
-
-    oc.save();
-    const label = crop.label || `Crop ${crop.id}`;
-    oc.font = 'bold 11px -apple-system, sans-serif';
-    const tw = oc.measureText(label).width;
-    const bx = crop.x + 4, by = crop.y + 4;
-    oc.fillStyle = sel ? '#448aff' : 'rgba(41,121,255,0.85)';
-    oc.beginPath();
-    oc.roundRect(bx-3, by-1, tw+10, 16, 4);
-    oc.fill();
-    oc.fillStyle = '#fff';
-    oc.fillText(label, bx+2, by+11);
-    oc.restore();
-
-    if(sel) {
-      const handles = getHandles(crop);
-      for(const {x,y} of Object.values(handles)) {
-        oc.save();
-        oc.beginPath();
-        oc.arc(x, y, HANDLE_R, 0, Math.PI*2);
-        oc.fillStyle = '#fff';
-        oc.fill();
-        oc.strokeStyle = '#448aff';
-        oc.lineWidth = 2;
-        oc.stroke();
-        oc.restore();
+  for(const c of list){
+    const sel=c.id===ieSel;
+    ctx.save();ctx.strokeStyle=sel?'#448aff':'rgba(100,181,246,.7)';ctx.lineWidth=sel?2:1.5;
+    ctx.setLineDash(sel?[]:[5,4]);ctx.strokeRect(c.x+.5,c.y+.5,c.w,c.h);ctx.restore();
+    ctx.save();
+    const lbl=c.label||`Crop ${c.id}`;ctx.font='bold 11px sans-serif';
+    const tw=ctx.measureText(lbl).width;
+    ctx.fillStyle=sel?'#448aff':'rgba(41,121,255,.85)';
+    ctx.beginPath();ctx.roundRect(c.x+4-3,c.y+4-1,tw+10,16,4);ctx.fill();
+    ctx.fillStyle='#fff';ctx.fillText(lbl,c.x+4+2,c.y+4+11);ctx.restore();
+    if(sel){
+      for(const{x,y} of Object.values(ieHandles(c))){
+        ctx.save();ctx.beginPath();ctx.arc(x,y,HR,0,Math.PI*2);
+        ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#448aff';ctx.lineWidth=2;ctx.stroke();ctx.restore();
       }
     }
   }
 }
 
-// ── Pointer events ──
-function onPointerDown(e) {
-  e.preventDefault();
-  if(!pdfDoc) return;
-  const p = getPos(e);
-  const hit = hitTest(p.x, p.y);
-  if(hit.type === 'handle') {
-    interacting = true; interactMode = 'resize';
-    resizeHandle = hit.handle;
-    selectedId = hit.crop.id;
-    pointerStart = p;
-  } else if(hit.type === 'body') {
-    interacting = true; interactMode = 'move';
-    selectedId = hit.crop.id;
-    moveOffset = {x: p.x - hit.crop.x, y: p.y - hit.crop.y};
-    pointerStart = p;
-  } else {
-    interacting = true; interactMode = 'create';
-    selectedId = null;
-    pointerStart = p; pointerCurrent = p;
-  }
-  drawOverlay();
-  updateCropsPanel();
+// Pointer events
+function ieDown(e){
+  e.preventDefault();if(!iePdf) return;
+  const p=iePos(e),hit=ieHit(p.x,p.y);
+  if(hit.type==='handle'){ieInter=true;ieMode='resize';ieRH=hit.handle;ieSel=hit.crop.id;ieStart=p;}
+  else if(hit.type==='body'){ieInter=true;ieMode='move';ieSel=hit.crop.id;ieMOff={x:p.x-hit.crop.x,y:p.y-hit.crop.y};ieStart=p;}
+  else{ieInter=true;ieMode='create';ieSel=null;ieStart=p;ieCur=p;}
+  ieDrawOv();ieUpdatePanel();
 }
-
-function onPointerMove(e) {
-  e.preventDefault();
-  if(!pdfDoc) return;
-  const p = getPos(e);
-  pointerCurrent = p;
-
-  if(!interacting) {
-    const hit = hitTest(p.x, p.y);
-    if(hit.type === 'handle') {
-      const cursors = {nw:'nw-resize',n:'n-resize',ne:'ne-resize',e:'e-resize',
-                       se:'se-resize',s:'s-resize',sw:'sw-resize',w:'w-resize'};
-      overlayCanvas.style.cursor = cursors[hit.handle] || 'crosshair';
-    } else if(hit.type === 'body') {
-      overlayCanvas.style.cursor = 'move';
-    } else {
-      overlayCanvas.style.cursor = 'crosshair';
-    }
+function ieMove(e){
+  e.preventDefault();if(!iePdf) return;
+  const p=iePos(e);ieCur=p;
+  if(!ieInter){
+    const hit=ieHit(p.x,p.y);
+    const cs={nw:'nw-resize',n:'n-resize',ne:'ne-resize',e:'e-resize',se:'se-resize',s:'s-resize',sw:'sw-resize',w:'w-resize'};
+    ieOvCv().style.cursor=hit.type==='handle'?(cs[hit.handle]||'crosshair'):hit.type==='body'?'move':'crosshair';
     return;
   }
+  if(ieMode==='move'){
+    const c=ieGetCrop(ieSel);
+    if(c){const W=ieOvCv().width,H=ieOvCv().height;c.x=Math.max(0,Math.min(W-c.w,p.x-ieMOff.x));c.y=Math.max(0,Math.min(H-c.h,p.y-ieMOff.y));}
+  } else if(ieMode==='resize'){
+    const c=ieGetCrop(ieSel);if(c) ieApplyResize(c,ieRH,p);
+  }
+  ieDrawOv();
+}
+function ieUp(e){
+  e.preventDefault();if(!iePdf||!ieInter) return;
+  if(ieMode==='create'){
+    const r=ieNorm(ieStart.x,ieStart.y,ieCur.x-ieStart.x,ieCur.y-ieStart.y);
+    if(r.w>10&&r.h>10) ieCreate(r.x,r.y,r.w,r.h);
+  } else ieGenThumb(ieGetCrop(ieSel));
+  ieInter=false;ieMode=null;ieRH=null;
+  ieDrawOv();ieUpdatePanel();
+}
+function ieApplyResize(c,h,p){
+  const r=4,orR=c.x+c.w,orB=c.y+c.h;
+  if(h.includes('w')){const nx=Math.min(p.x,orR-r);c.w+=c.x-nx;c.x=nx;}
+  if(h.includes('e')) c.w=Math.max(r,p.x-c.x);
+  if(h.includes('n')){const ny=Math.min(p.y,orB-r);c.h+=c.y-ny;c.y=ny;}
+  if(h.includes('s')) c.h=Math.max(r,p.y-c.y);
+  const W=ieOvCv().width,H=ieOvCv().height;
+  c.x=Math.max(0,c.x);c.y=Math.max(0,c.y);
+  if(c.x+c.w>W) c.w=W-c.x;if(c.y+c.h>H) c.h=H-c.y;
+}
 
-  if(interactMode === 'move') {
-    const crop = getCrop(selectedId);
-    if(crop) {
-      const W = overlayCanvas.width, H = overlayCanvas.height;
-      crop.x = Math.max(0, Math.min(W - crop.w, p.x - moveOffset.x));
-      crop.y = Math.max(0, Math.min(H - crop.h, p.y - moveOffset.y));
+function ieWire(){
+  const ov=ieOvCv();
+  ov.addEventListener('mousedown',ieDown);ov.addEventListener('mousemove',ieMove);ov.addEventListener('mouseup',ieUp);
+  ov.addEventListener('touchstart',ieDown,{passive:false});ov.addEventListener('touchmove',ieMove,{passive:false});ov.addEventListener('touchend',ieUp,{passive:false});
+}
+
+// Crop management
+function ieGetCrop(id){for(const l of Object.values(ieAllCrops)) for(const c of l) if(c.id===id) return c; return null;}
+function ieGetCropPage(id){for(const[pg,l] of Object.entries(ieAllCrops)) if(l.some(c=>c.id===id)) return parseInt(pg); return null;}
+function ieCreate(x,y,w,h){
+  if(!ieAllCrops[iePage]) ieAllCrops[iePage]=[];
+  ieCropCnt++;
+  const c={id:ieCropCnt,x,y,w,h,label:`Crop ${ieCropCnt}`,thumb:null};
+  ieAllCrops[iePage].push(c);ieSel=c.id;ieGenThumb(c);return c;
+}
+function ieDelete(id){
+  for(const pg of Object.keys(ieAllCrops)){const i=ieAllCrops[pg].findIndex(c=>c.id===id);if(i!==-1){ieAllCrops[pg].splice(i,1);break;}}
+  if(ieSel===id) ieSel=null;ieDrawOv();ieUpdatePanel();
+}
+function ieGenThumb(c){
+  if(!c) return;
+  const tmp=document.createElement('canvas');tmp.width=c.w;tmp.height=c.h;
+  tmp.getContext('2d').drawImage(iePdfCv(),c.x,c.y,c.w,c.h,0,0,c.w,c.h);
+  c.thumb=tmp.toDataURL('image/png');
+  const img=document.querySelector(`[data-th="${c.id}"]`);if(img) img.src=c.thumb;
+}
+function ieSnapAll(){
+  const l=ieAllCrops[iePage]||[];if(!l.length){showToast('No crops on this page');return;}
+  l.forEach(c=>{c.x=0;c.w=ieOvCv().width;ieGenThumb(c);});
+  ieDrawOv();ieUpdatePanel();showToast('Snapped all to full width');
+}
+
+// Auto detect
+async function ieAutoDetect(){
+  if(!iePdf){showToast('Load a PDF first');return;}
+  const btn=document.getElementById('ie-auto-btn');
+  const orig=btn.innerHTML;btn.innerHTML='<span class="spin">⟳</span> Analysing…';btn.disabled=true;
+  await new Promise(r=>setTimeout(r,40));
+  try{
+    const W=iePdfCv().width,H=iePdfCv().height;
+    const{data}=iePdfCv().getContext('2d').getImageData(0,0,W,H);
+    const rowD=new Float32Array(H),rowMR=new Int32Array(H),rowHC=new Uint8Array(H);
+    for(let y=0;y<H;y++){
+      let nw=0,run=0,mx=0;
+      for(let x=0;x<W;x++){
+        const i=(y*W+x)*4,r=data[i],g=data[i+1],b=data[i+2];
+        if(.299*r+.587*g+.114*b<238){nw++;if(++run>mx)mx=run;if(Math.max(r,g,b)-Math.min(r,g,b)>25)rowHC[y]=1;}else run=0;
+      }
+      rowD[y]=nw/W;rowMR[y]=mx;
     }
-  } else if(interactMode === 'resize') {
-    const crop = getCrop(selectedId);
-    if(crop) applyResize(crop, resizeHandle, p);
+    const ABS_MIN=Math.floor(W*.10),hist=new Int32Array(W+1);
+    for(let y=0;y<H;y++) if(rowMR[y]>=ABS_MIN) hist[rowMR[y]]++;
+    let domRun=W,domPeak=0;
+    for(let l=ABS_MIN;l<=W;l++){const s=(hist[l-2]||0)+(hist[l-1]||0)+hist[l]+(hist[l+1]||0)+(hist[l+2]||0);if(s>domPeak){domPeak=s;domRun=l;}}
+    const MAX_RUN=Math.floor(domRun*.80),MIN_RUN=ABS_MIN;
+    const BG_WIN=120,bgD=new Float32Array(H);
+    {let sum=0,lo=0,hi=0;while(hi<Math.min(BG_WIN,H))sum+=rowD[hi++];for(let y=0;y<H;y++){bgD[y]=sum/(hi-lo);if(hi<H)sum+=rowD[hi++];if(y>=BG_WIN)sum-=rowD[lo++];}}
+    const cand=new Uint8Array(H);
+    for(let y=0;y<H;y++){const d=rowD[y],bg=bgD[y];if(d>.15||(d>.08&&d>bg*2.8))cand[y]=2;else if((rowMR[y]>=MIN_RUN&&rowMR[y]<=MAX_RUN)||rowHC[y])cand[y]=1;}
+    const zone=new Uint8Array(H);
+    for(let y=0;y<H;y++){if(!cand[y])continue;const exp=cand[y]===2?50:15;const lo=Math.max(0,y-exp),hi=Math.min(H,y+exp+1);for(let yy=lo;yy<hi;yy++)if(rowD[yy]>.003)zone[yy]=1;}
+    let lastCY=-1;
+    for(let y=0;y<H;y++){if(cand[y]){if(lastCY>=0&&y-lastCY<=200)for(let yy=lastCY;yy<=y;yy++)if(rowD[yy]>.002)zone[yy]=1;lastCY=y;}}
+    const blocks=[],MIN_H=45;let inB=false,bS=0;
+    for(let y=0;y<=H;y++){if(y<H&&zone[y]&&!inB){inB=true;bS=y;}if((y>=H||!zone[y])&&inB){inB=false;if(y-bS>=MIN_H)blocks.push({y1:bS,y2:y});}}
+    const figs=blocks.filter(b=>{
+      const h=b.y2-b.y1;let sR=0,aR=0,cR=0,sumD=0;
+      for(let y=b.y1;y<b.y2;y++){if(cand[y]===2)sR++;if(rowMR[y]>=MIN_RUN&&rowMR[y]<=MAX_RUN)aR++;if(rowHC[y])cR++;sumD+=rowD[y];}
+      const avgD=sumD/h,aPP=aR/h;
+      if(sR>=2) return true;if(aR>=1&&h>=55&&aPP<.035&&avgD<.11) return true;if(cR>=4&&h>=40) return true;return false;
+    });
+    if(!figs.length){showToast('No figures detected — draw manually');return;}
+    let added=0;
+    for(const f of figs){const y=Math.max(0,f.y1-10),h=Math.min(H,f.y2+10)-y;if(h>20){ieCreate(0,y,W,h);added++;}}
+    ieDrawOv();ieUpdatePanel();showToast(`Detected ${added} figure${added!==1?'s':''}`);
+  }catch(err){showToast('Detection error: '+err.message);}
+  finally{btn.innerHTML=orig;btn.disabled=false;}
+}
+
+// Panel
+function ieUpdatePanel(){
+  const total=Object.values(ieAllCrops).reduce((a,b)=>a+b.length,0);
+  document.getElementById('ie-crop-count').textContent=total;
+  const pages=Object.keys(ieAllCrops).map(Number).filter(pg=>ieAllCrops[pg]?.length>0).sort((a,b)=>a-b);
+  const list=document.getElementById('ie-crops-list');
+  if(!pages.length){
+    list.innerHTML='<div id="ie-empty"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Draw on the PDF to create crop regions, or use Auto Detect</div>';
+    return;
   }
-  drawOverlay();
+  const st=list.scrollTop;
+  list.innerHTML=pages.map(pg=>`
+    <div>
+      <div class="ie-pg-hdr${pg===iePage?' cur':''}"><span>Page ${pg}</span>${pg===iePage?'<span style="background:#2979ff;color:#fff;border-radius:99px;font-size:9px;padding:1px 5px">Current</span>':''}</div>
+      ${(ieAllCrops[pg]||[]).map(c=>`
+        <div class="ie-crop${c.id===ieSel?' sel':''}" onclick="ieSelectCrop(${c.id})">
+          ${c.thumb?`<img class="ie-thumb" data-th="${c.id}" src="${c.thumb}" alt="${eH(c.label)}">`:'<div class="ie-thumb-ph">Generating…</div>'}
+          <div class="ie-meta">
+            <input class="ie-lbl" value="${eH(c.label)}" onclick="event.stopPropagation()" oninput="ieRenameLive(${c.id},this.value)" onblur="ieRename(${c.id},this.value)" onkeydown="if(event.key==='Enter')this.blur()">
+            <div class="ie-acts">
+              <button class="ie-ibtn send" title="Send to Form" onclick="event.stopPropagation();ieSendOne(${c.id})">↗</button>
+              <button class="ie-ibtn del" title="Delete" onclick="event.stopPropagation();ieDelete(${c.id})">✕</button>
+            </div>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+  list.scrollTop=st;
 }
 
-function onPointerUp(e) {
-  e.preventDefault();
-  if(!pdfDoc || !interacting) return;
-  if(interactMode === 'create') {
-    const r = normalizeRect(
-      pointerStart.x, pointerStart.y,
-      pointerCurrent.x - pointerStart.x,
-      pointerCurrent.y - pointerStart.y
-    );
-    if(r.w > 10 && r.h > 10) {
-      createCrop(r.x, r.y, r.w, r.h);
-    }
-  } else {
-    refreshThumbnail(selectedId);
-  }
-  interacting = false; interactMode = null; resizeHandle = null;
-  drawOverlay();
-  updateCropsPanel();
+async function ieSelectCrop(id){
+  const pg=ieGetCropPage(id);
+  if(pg!==null&&pg!==iePage){iePage=pg;await ieRender(iePage);ieUpdateUI();}
+  ieSel=id;ieDrawOv();ieUpdatePanel();
 }
+function ieRenameLive(id,val){const c=ieGetCrop(id);if(c){c.label=val||`Crop ${id}`;ieDrawOv();}}
+function ieRename(id,val){const c=ieGetCrop(id);if(c){c.label=(val||`Crop ${id}`).trim();ieDrawOv();ieUpdatePanel();}}
 
-function applyResize(crop, handle, p) {
-  const r = 4;
-  const origR = crop.x + crop.w;
-  const origB = crop.y + crop.h;
-  if(handle.includes('w')) { const nx = Math.min(p.x, origR-r); crop.w += crop.x - nx; crop.x = nx; }
-  if(handle.includes('e')) { crop.w = Math.max(r, p.x - crop.x); }
-  if(handle.includes('n')) { const ny = Math.min(p.y, origB-r); crop.h += crop.y - ny; crop.y = ny; }
-  if(handle.includes('s')) { crop.h = Math.max(r, p.y - crop.y); }
-  const W = overlayCanvas.width, H = overlayCanvas.height;
-  crop.x = Math.max(0, crop.x); crop.y = Math.max(0, crop.y);
-  if(crop.x + crop.w > W) crop.w = W - crop.x;
-  if(crop.y + crop.h > H) crop.h = H - crop.y;
-}
-
-overlayCanvas.addEventListener('mousedown',  onPointerDown);
-overlayCanvas.addEventListener('mousemove',  onPointerMove);
-overlayCanvas.addEventListener('mouseup',    onPointerUp);
-overlayCanvas.addEventListener('touchstart', onPointerDown, {passive:false});
-overlayCanvas.addEventListener('touchmove',  onPointerMove, {passive:false});
-overlayCanvas.addEventListener('touchend',   onPointerUp,  {passive:false});
-
-// ── Crop management ──
-function getCrop(id) {
-  for(const list of Object.values(crops))
-    for(const c of list) if(c.id === id) return c;
-  return null;
-}
-
-function getCropPage(id) {
-  for(const [pg, list] of Object.entries(crops))
-    if(list.some(c => c.id === id)) return parseInt(pg);
-  return null;
-}
-
-function createCrop(x, y, w, h) {
-  if(!crops[currentPage]) crops[currentPage] = [];
-  cropCounter++;
-  const id = cropCounter;
-  const label = `Crop ${id}`;
-  const crop = {id, x, y, w, h, label, thumb: null};
-  crops[currentPage].push(crop);
-  selectedId = id;
-  generateThumbnail(crop);
-  return crop;
-}
-
-function deleteSelectedCrop() {
-  if(!selectedId) { showToast('Select a crop first'); return; }
-  deleteCrop(selectedId);
-}
-
-function deleteCrop(id) {
-  for(const pg of Object.keys(crops)) {
-    const idx = crops[pg].findIndex(c => c.id === id);
-    if(idx !== -1) { crops[pg].splice(idx, 1); break; }
-  }
-  if(selectedId === id) selectedId = null;
-  drawOverlay();
-  updateCropsPanel();
-}
-
-function snapCropToFullWidth(id) {
-  const crop = getCrop(id);
-  if(!crop) return;
-  crop.x = 0; crop.w = overlayCanvas.width;
-  generateThumbnail(crop);
-  drawOverlay();
-  updateCropsPanel();
-}
-
-function snapAllToFullWidth() {
-  const pageCrops = crops[currentPage] || [];
-  if(!pageCrops.length) { showToast('No crops on this page'); return; }
-  pageCrops.forEach(c => { c.x = 0; c.w = overlayCanvas.width; generateThumbnail(c); });
-  drawOverlay();
-  updateCropsPanel();
-  showToast('Snapped all to full width');
-}
-
-// ── Thumbnail generation ──
-function generateThumbnail(crop) {
-  if(!pdfDoc) return;
-  const tmp = document.createElement('canvas');
-  tmp.width = crop.w; tmp.height = crop.h;
-  const ctx = tmp.getContext('2d');
-  ctx.drawImage(pdfCanvas, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
-  crop.thumb = tmp.toDataURL('image/png');
-  const img = document.querySelector(`[data-thumb="${crop.id}"]`);
-  if(img) img.src = crop.thumb;
-}
-
-function refreshThumbnail(id) {
-  const crop = getCrop(id);
-  if(crop) generateThumbnail(crop);
-}
-
-// ── Export ──
-function exportCrop(id) {
-  const crop = getCrop(id);
-  if(!crop) return;
-  generateThumbnail(crop);
-  const a = document.createElement('a');
-  a.download = `${(crop.label||'crop').replace(/[^a-z0-9_\-]/gi,'_')}.png`;
-  a.href = crop.thumb;
-  a.click();
-  showToast(`Downloaded "${crop.label}"`);
-}
-
-async function exportAllCrops() {
-  const allCrops = [];
-  for(const [pg, list] of Object.entries(crops)) allCrops.push(...list);
-  if(!allCrops.length) { showToast('No crops to export'); return; }
-
-  for(const [pg, list] of Object.entries(crops)) {
-    const page = await pdfDoc.getPage(parseInt(pg));
-    const viewport = page.getViewport({scale});
-    const tmp = document.createElement('canvas');
-    tmp.width = viewport.width; tmp.height = viewport.height;
-    await page.render({canvasContext: tmp.getContext('2d'), viewport}).promise;
-    for(const crop of list) {
-      const out = document.createElement('canvas');
-      out.width = crop.w; out.height = crop.h;
-      out.getContext('2d').drawImage(tmp, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
-      const a = document.createElement('a');
-      a.download = `${(crop.label||'crop').replace(/[^a-z0-9_\-]/gi,'_')}_p${pg}.png`;
-      a.href = out.toDataURL('image/png');
-      a.click();
-      await new Promise(r => setTimeout(r, 120));
+async function ieExportAll(){
+  const all=[];for(const l of Object.values(ieAllCrops)) all.push(...l);
+  if(!all.length){showToast('No crops to export');return;}
+  for(const[pg,list] of Object.entries(ieAllCrops)){
+    const page=await iePdf.getPage(parseInt(pg));
+    const vp=page.getViewport({scale:ieScale});
+    const tmp=document.createElement('canvas');tmp.width=vp.width;tmp.height=vp.height;
+    await page.render({canvasContext:tmp.getContext('2d'),viewport:vp}).promise;
+    for(const c of list){
+      const out=document.createElement('canvas');out.width=c.w;out.height=c.h;
+      out.getContext('2d').drawImage(tmp,c.x,c.y,c.w,c.h,0,0,c.w,c.h);
+      const a=document.createElement('a');a.download=`${(c.label||'crop').replace(/[^a-z0-9_\-]/gi,'_')}_p${pg}.png`;
+      a.href=out.toDataURL('image/png');a.click();
+      await new Promise(r=>setTimeout(r,120));
     }
   }
-  showToast(`Exported ${allCrops.length} crop${allCrops.length>1?'s':''}`);
+  showToast('All crops downloaded');
 }
 
-// ── Crops panel ──
-function cropItemHTML(crop) {
-  return `
-    <div class="crop-item${crop.id===selectedId?' selected':''}" data-id="${crop.id}" onclick="selectCrop(${crop.id})">
-      ${crop.thumb
-        ? `<img class="crop-thumb" data-thumb="${crop.id}" src="${crop.thumb}" alt="${escHtml(crop.label)}">`
-        : `<div class="crop-thumb-placeholder">Generating…</div>`}
-      <div class="crop-meta">
-        <input class="crop-label" value="${escHtml(crop.label)}" data-id="${crop.id}"
-          onclick="event.stopPropagation()"
-          oninput="renameCropLive(${crop.id}, this.value)"
-          onblur="renameCrop(${crop.id}, this.value)"
-          onkeydown="if(event.key==='Enter')this.blur()">
-        <div class="crop-actions">
-          <button class="icon-btn dl" title="Download" onclick="event.stopPropagation();exportCrop(${crop.id})">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-          </button>
-          <button class="icon-btn" title="Snap to full width" onclick="event.stopPropagation();snapCropToFullWidth(${crop.id})">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <polyline points="8 8 3 3 8 3"/><polyline points="16 8 21 3 16 3"/>
-              <polyline points="8 16 3 21 8 21"/><polyline points="16 16 21 21 16 21"/>
-            </svg>
-          </button>
-          <button class="icon-btn del" title="Delete" onclick="event.stopPropagation();deleteCrop(${crop.id})">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
-            </svg>
-          </button>
+// Send to library
+function ieSendOne(id){
+  const c=ieGetCrop(id);if(!c) return;
+  ieGenThumb(c);
+  S.libCounter++;
+  const item={id:S.libCounter,src:c.thumb,label:c.label||`Image ${S.libCounter}`};
+  S.imageLib.push(item);
+  updateLibUI();
+  showToast(`"${item.label}" added to library`);
+}
+function ieSendAll(){
+  const all=[];for(const l of Object.values(ieAllCrops)) all.push(...l);
+  if(!all.length){showToast('No crops to send');return;}
+  all.forEach(c=>ieSendOne(c.id));
+}
+
+function updateLibUI(){
+  document.getElementById('lib-count').textContent=S.imageLib.length;
+  const lib=document.getElementById('img-library');
+  if(!S.imageLib.length){
+    lib.innerHTML='<div style="font-size:11px;color:var(--text3);padding:10px 0">No images added yet. Draw crops and click ↗ Send to Form.</div>';
+    return;
+  }
+  lib.innerHTML=S.imageLib.map(img=>`
+    <div class="lib-item" onclick="insertImgAtEnd(${img.id})">
+      <img src="${img.src}" alt="${eH(img.label)}">
+      <div class="lib-item-lbl">${eH(img.label)}</div>
+      <div class="lib-item-hover">+ Insert</div>
+    </div>`).join('');
+}
+
+function insertImgAtEnd(libId){
+  const img=S.imageLib.find(i=>i.id===libId);if(!img) return;
+  S.formItems.push({type:'image',libId,src:img.src,label:img.label});
+  renderEditorAndPreview();
+  showToast(`"${img.label}" added to form`);
+}
+
+// Modal
+function showImgLibModal(){
+  if(!S.imageLib.length){showToast('No images in library — extract images in Step 3 first');return;}
+  const grid=document.getElementById('modal-lib-grid');
+  grid.innerHTML=S.imageLib.map(img=>`
+    <div class="lib-item" style="width:110px" onclick="insertImgAtEnd(${img.id});closeImgModal()">
+      <img src="${img.src}" alt="${eH(img.label)}">
+      <div class="lib-item-lbl">${eH(img.label)}</div>
+      <div class="lib-item-hover">+ Insert</div>
+    </div>`).join('');
+  document.getElementById('img-modal').style.display='flex';
+}
+function closeImgModal(){document.getElementById('img-modal').style.display='none';}
+document.getElementById('img-modal').addEventListener('click',function(e){if(e.target===this) closeImgModal();});
+
+// ═══════════════════════════════════════════════════════
+// STEP 4 — EDITOR + PREVIEW
+// ═══════════════════════════════════════════════════════
+function renderEditorAndPreview(){
+  renderEditor();renderPreview();
+}
+
+function renderEditor(){
+  const cont=document.getElementById('qcont');cont.innerHTML='';
+  // Stats
+  const mcq=S.questions.filter(q=>q.type==='mcq').length;
+  const oeq=S.questions.filter(q=>q.type==='open').length;
+  const unm=S.questions.filter(q=>!q.answerMatched).length;
+  const lo=S.questions.filter(q=>q.confidence==='low').length;
+  document.getElementById('stats-row').innerHTML=`
+    <div class="stat-box"><div class="stat-num">${S.questions.length}</div><div class="stat-lbl">Questions</div></div>
+    <div class="stat-box"><div class="stat-num">${mcq}</div><div class="stat-lbl">MCQ</div></div>
+    <div class="stat-box"><div class="stat-num">${oeq}</div><div class="stat-lbl">Open-Ended</div></div>
+    <div class="stat-box"><div class="stat-num ${unm?'c-lo':''}">${unm}</div><div class="stat-lbl">No Answer</div></div>
+    <div class="stat-box"><div class="stat-num ${lo?'c-lo':''}">${lo}</div><div class="stat-lbl">Low Confidence</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--purple)">${S.imageLib.length}</div><div class="stat-lbl">Images</div></div>`;
+  const ab=document.getElementById('alert-box');ab.innerHTML='';
+  if(unm||lo) ab.innerHTML=`<div class="alert alert-warn"><span class="alert-icon">⚠️</span><div>${unm} question(s) with no matched answer, ${lo} with low confidence. Please review.</div></div>`;
+
+  S.formItems.forEach((item,fi)=>{
+    if(item.type==='question') renderQCard(item.qIdx,fi,cont);
+    else renderImgCard(item,fi,cont);
+  });
+}
+
+function renderQCard(qi,fi,cont){
+  const q=S.questions[qi];if(!q) return;
+  const cc=q.confidence==='high'?'c-hi':q.confidence==='low'?'c-lo':'c-mid';
+  const card=document.createElement('div');
+  card.className='q-card'+(q.confidence==='low'||!q.answerMatched?' exp':'');
+  card.id='qc-'+fi;card.draggable=true;card.dataset.fi=fi;
+
+  const optsHtml=q.type==='mcq'?`
+    <div class="field-group"><label>Options</label>
+    <div class="opt-list" id="ol-${fi}">
+      ${q.options.map((opt,oi)=>{
+        const lt=opt.match(/^([A-D1-4])[.)]/)?.[1]||String.fromCharCode(65+oi);
+        const tx=opt.replace(/^[A-D1-4][.)]\s*/,'');
+        const ia=q.correctAnswer&&(lt===q.correctAnswer);
+        return`<div class="opt-row${ia?' is-ans':''}" id="or-${fi}-${oi}">
+          <div class="opt-ltr">${lt}</div>
+          <input type="text" value="${eH(tx)}" oninput="updOpt(${qi},${oi},this.value)">
+          <button class="btn btn-ghost btn-sm" onclick="rmOpt(${qi},${oi})">✕</button>
+        </div>`;
+      }).join('')}
+    </div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addOpt(${qi})">+ Option</button></div>
+    <div class="field-group"><label>Correct Answer</label>
+    <div class="ans-chips" id="ac-${fi}">
+      ${q.options.map((opt,oi)=>{
+        const lt=opt.match(/^([A-D1-4])[.)]/)?.[1]||String.fromCharCode(65+oi);
+        return`<div class="ans-chip${q.correctAnswer===lt?' sel':''}" onclick="selAns(${qi},'${lt}',${fi})">${lt}</div>`;
+      }).join('')}
+    </div></div>`:'';
+
+  const imgPick=S.imageLib.length?`
+    <div class="field-group"><label>Attach Image to Question</label>
+    <select onchange="attachImg(${qi},this.value)">
+      <option value="">— none —</option>
+      ${S.imageLib.map(img=>`<option value="${img.id}" ${q.image?.libId===img.id?'selected':''}>${eH(img.label)}</option>`).join('')}
+    </select></div>`:'';
+
+  card.innerHTML=`
+    <div class="q-hdr" onclick="togCard('qc-${fi}')">
+      <span class="drag-handle" draggable="false">⠿</span>
+      <div class="q-badge b-${q.type==='mcq'?'mcq':'oeq'}">${q.type==='mcq'?'MCQ':'Open'}</div>
+      <div style="font-size:10px;font-weight:700;color:var(--text2);flex-shrink:0">Q${q.number}</div>
+      <div class="q-ttl">${eH((q.text||'').substring(0,65))}${(q.text||'').length>65?'…':''}</div>
+      ${!q.answerMatched?'<span class="q-badge" style="background:var(--red-l);color:var(--red)">No Ans</span>':''}
+      ${q.image?'<span class="q-badge b-img">🖼</span>':''}
+      <span class="${cc}" style="font-size:9px;font-weight:700;flex-shrink:0">${(q.confidence||'?').toUpperCase()}</span>
+      <div class="q-tog">⌄</div>
+    </div>
+    <div class="q-body">
+      ${q.image?`<img class="q-img-prev" src="${q.image.src}" alt="${eH(q.image.label)}"><button class="btn btn-danger btn-sm" style="margin-bottom:8px" onclick="rmImg(${qi})">✕ Remove Image</button>`:''}
+      <div class="field-group"><label>Question Text</label>
+        <textarea rows="3" oninput="updQ(${qi},'text',this.value)">${eH(q.text)}</textarea></div>
+      <div class="field-group"><label>Type</label>
+        <select onchange="chgType(${qi},this.value)">
+          <option value="mcq" ${q.type==='mcq'?'selected':''}>Multiple Choice (MCQ)</option>
+          <option value="open" ${q.type==='open'?'selected':''}>Open-Ended</option>
+        </select></div>
+      ${optsHtml}
+      <div class="field-group"><label>${q.type==='mcq'?'Feedback / Explanation':'Model Answer'}</label>
+        <textarea rows="2" oninput="updQ(${qi},'feedback',this.value)">${eH(q.feedback)}</textarea>
+        <div class="hint">Shown to student after submission</div></div>
+      ${imgPick}
+      <div style="margin-top:10px;display:flex;gap:6px;justify-content:space-between;flex-wrap:wrap">
+        <button class="btn btn-danger btn-sm" onclick="delItem(${fi})">🗑 Remove from Form</button>
+        <div class="row-flex">
+          <button class="btn btn-ghost btn-sm" onclick="mvItem(${fi},-1)">↑ Up</button>
+          <button class="btn btn-ghost btn-sm" onclick="mvItem(${fi},1)">↓ Down</button>
         </div>
       </div>
     </div>`;
+
+  // Drag & Drop
+  card.addEventListener('dragstart',e=>{e.dataTransfer.setData('fi',String(fi));card.style.opacity='.4';});
+  card.addEventListener('dragend',()=>{card.style.opacity='1';document.querySelectorAll('.q-card').forEach(c=>c.classList.remove('dov-top','dov-bot'));});
+  card.addEventListener('dragover',e=>{e.preventDefault();const mid=card.getBoundingClientRect().top+card.offsetHeight/2;card.classList.toggle('dov-top',e.clientY<mid);card.classList.toggle('dov-bot',e.clientY>=mid);});
+  card.addEventListener('dragleave',()=>card.classList.remove('dov-top','dov-bot'));
+  card.addEventListener('drop',e=>{
+    e.preventDefault();const fromFi=parseInt(e.dataTransfer.getData('fi'));
+    const mid=card.getBoundingClientRect().top+card.offsetHeight/2;const toFi=e.clientY<mid?fi:fi+1;
+    if(fromFi===toFi||fromFi===toFi-1) return;
+    const it=S.formItems.splice(fromFi,1)[0];
+    S.formItems.splice(toFi>fromFi?toFi-1:toFi,0,it);
+    renderEditorAndPreview();
+  });
+  cont.appendChild(card);
 }
 
-function updateCropsPanel() {
-  const total = Object.values(crops).reduce((a,b)=>a+b.length, 0);
-  cropCount.textContent = total;
-
-  const pages = Object.keys(crops).map(Number).filter(pg => crops[pg] && crops[pg].length > 0).sort((a,b)=>a-b);
-
-  if(!pages.length) {
-    cropsList.innerHTML = `
-      <div id="empty-state">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
-        </svg>
-        <p>Draw on the PDF to<br>create crop regions</p>
-      </div>`;
-    return;
-  }
-
-  const scrollTop = cropsList.scrollTop;
-
-  cropsList.innerHTML = pages.map(pg => {
-    const isCurrent = pg === currentPage;
-    return `
-      <div class="page-group">
-        <div class="page-group-header${isCurrent?' current':''}">
-          <span>Page ${pg}</span>
-          ${isCurrent ? '<span class="current-badge">Current</span>' : ''}
+function renderImgCard(item,fi,cont){
+  const card=document.createElement('div');
+  card.className='q-card exp';card.id='qc-'+fi;card.draggable=true;card.dataset.fi=fi;
+  card.innerHTML=`
+    <div class="q-hdr">
+      <span class="drag-handle">⠿</span>
+      <div class="q-badge b-img">IMAGE</div>
+      <div class="q-ttl">${eH(item.label)}</div>
+      <div class="q-tog" style="transform:rotate(180deg)">⌄</div>
+    </div>
+    <div class="q-body" style="display:block">
+      <img class="q-img-prev" src="${item.src}" alt="${eH(item.label)}">
+      <div class="field-group" style="margin-top:8px"><label>Caption / Label</label>
+        <input type="text" value="${eH(item.label)}" oninput="S.formItems[${fi}].label=this.value;renderPreview()"></div>
+      <div style="margin-top:8px;display:flex;gap:6px;justify-content:space-between">
+        <button class="btn btn-danger btn-sm" onclick="delItem(${fi})">🗑 Remove</button>
+        <div class="row-flex">
+          <button class="btn btn-ghost btn-sm" onclick="mvItem(${fi},-1)">↑ Up</button>
+          <button class="btn btn-ghost btn-sm" onclick="mvItem(${fi},1)">↓ Down</button>
         </div>
-        ${crops[pg].map(cropItemHTML).join('')}
-      </div>`;
-  }).join('');
-
-  cropsList.scrollTop = scrollTop;
+      </div>
+    </div>`;
+  card.addEventListener('dragstart',e=>{e.dataTransfer.setData('fi',String(fi));card.style.opacity='.4';});
+  card.addEventListener('dragend',()=>{card.style.opacity='1';document.querySelectorAll('.q-card').forEach(c=>c.classList.remove('dov-top','dov-bot'));});
+  card.addEventListener('dragover',e=>{e.preventDefault();const mid=card.getBoundingClientRect().top+card.offsetHeight/2;card.classList.toggle('dov-top',e.clientY<mid);card.classList.toggle('dov-bot',e.clientY>=mid);});
+  card.addEventListener('dragleave',()=>card.classList.remove('dov-top','dov-bot'));
+  card.addEventListener('drop',e=>{
+    e.preventDefault();const fromFi=parseInt(e.dataTransfer.getData('fi'));
+    const mid=card.getBoundingClientRect().top+card.offsetHeight/2;const toFi=e.clientY<mid?fi:fi+1;
+    if(fromFi===toFi||fromFi===toFi-1) return;
+    const it=S.formItems.splice(fromFi,1)[0];
+    S.formItems.splice(toFi>fromFi?toFi-1:toFi,0,it);
+    renderEditorAndPreview();
+  });
+  cont.appendChild(card);
 }
 
-async function selectCrop(id) {
-  const pg = getCropPage(id);
-  if(pg !== null && pg !== currentPage) {
-    currentPage = pg;
-    await renderPage(currentPage);
-    updateUI();
-  }
-  selectedId = id;
-  drawOverlay();
-  updateCropsPanel();
-  const crop = getCrop(id);
-  if(crop) {
-    const area = document.getElementById('canvas-area');
-    const wrap = document.getElementById('canvas-wrap');
-    const wrapRect = wrap.getBoundingClientRect();
-    const areaRect = area.getBoundingClientRect();
-    const cropCenterY = wrapRect.top - areaRect.top + area.scrollTop + crop.y + crop.h/2;
-    area.scrollTo({top: cropCenterY - area.clientHeight/2, behavior:'smooth'});
-  }
+// Editor helpers
+function togCard(id){document.getElementById(id)?.classList.toggle('exp');}
+function updQ(qi,f,v){S.questions[qi][f]=v;renderPreview();}
+function updOpt(qi,oi,v){
+  const opt=S.questions[qi].options[oi];
+  const lt=opt.match(/^([A-D1-4])[.)]/)?.[1]||String.fromCharCode(65+oi);
+  S.questions[qi].options[oi]=lt+'. '+v;renderPreview();
+}
+function selAns(qi,lt,fi){
+  S.questions[qi].correctAnswer=lt;
+  document.getElementById('ac-'+fi)?.querySelectorAll('.ans-chip').forEach(c=>c.classList.toggle('sel',c.textContent.trim()===lt));
+  document.getElementById('ol-'+fi)?.querySelectorAll('.opt-row').forEach(r=>r.classList.toggle('is-ans',r.querySelector('.opt-ltr')?.textContent.trim()===lt));
+  renderPreview();
+}
+function chgType(qi,t){S.questions[qi].type=t;renderEditorAndPreview();}
+function addOpt(qi){S.questions[qi].options.push(String.fromCharCode(65+S.questions[qi].options.length)+'. ');renderEditorAndPreview();}
+function rmOpt(qi,oi){S.questions[qi].options.splice(oi,1);renderEditorAndPreview();}
+function attachImg(qi,libId){
+  if(!libId){S.questions[qi].image=null;}
+  else{const img=S.imageLib.find(i=>i.id===parseInt(libId));S.questions[qi].image=img?{libId:img.id,src:img.src,label:img.label}:null;}
+  renderEditorAndPreview();
+}
+function rmImg(qi){S.questions[qi].image=null;renderEditorAndPreview();}
+function delItem(fi){S.formItems.splice(fi,1);renderEditorAndPreview();}
+function mvItem(fi,d){
+  const ni=fi+d;if(ni<0||ni>=S.formItems.length) return;
+  const t=S.formItems[fi];S.formItems[fi]=S.formItems[ni];S.formItems[ni]=t;
+  renderEditorAndPreview();
+}
+function addQuestion(){
+  S.questions.push({id:'Q'+(S.questions.length+1),number:String(S.questions.length+1),type:'mcq',
+    text:'',options:['A. ','B. ','C. ','D. '],correctAnswer:'',feedback:'',confidence:'high',answerMatched:true,image:null});
+  S.formItems.push({type:'question',qIdx:S.questions.length-1});
+  renderEditorAndPreview();
+  setTimeout(()=>{
+    const last=document.getElementById('qc-'+(S.formItems.length-1));
+    last?.classList.add('exp');last?.scrollIntoView({behavior:'smooth',block:'start'});
+  },50);
 }
 
-// Live update label + canvas badge without rebuilding panel (preserves input focus)
-function renameCropLive(id, value) {
-  const crop = getCrop(id);
-  if(crop) { crop.label = value || `Crop ${id}`; drawOverlay(); }
+// Google Form live preview
+function renderPreview(){
+  const title=document.getElementById('form-title')?.value||'Science Worksheet';
+  document.getElementById('preview-title').textContent=title;
+  const cont=document.getElementById('gf-items');cont.innerHTML='';
+  document.getElementById('prev-empty').style.display=S.formItems.length?'none':'block';
+  let qNum=0;
+  S.formItems.forEach((item,fi)=>{
+    if(item.type==='image'){
+      const div=document.createElement('div');div.className='gf-item';
+      div.innerHTML=`<button class="gf-del" onclick="delItem(${fi})">✕</button>
+        <div class="gf-qnum">📷 Image Block</div>
+        <div style="font-size:12px;color:#5f6368;font-family:'Google Sans',Arial,sans-serif;margin-bottom:8px">${eH(item.label)}</div>
+        <img class="gf-img-block" src="${item.src}" alt="${eH(item.label)}">`;
+      cont.appendChild(div);
+    } else {
+      const q=S.questions[item.qIdx];if(!q) return;
+      qNum++;
+      const div=document.createElement('div');div.className='gf-item';
+      let body='';
+      if(q.image) body+=`<img class="gf-qimg" src="${q.image.src}" alt="${eH(q.image.label)}">`;
+      if(q.type==='mcq'){
+        body+=q.options.map((opt,oi)=>{
+          const lt=opt.match(/^([A-D1-4])[.)]/)?.[1]||String.fromCharCode(65+oi);
+          const tx=opt.replace(/^[A-D1-4][.)]\s*/,'');
+          const isC=q.correctAnswer&&lt===q.correctAnswer;
+          return`<div class="gf-opt${isC?' correct':''}"><div class="gf-radio"></div><div class="gf-opt-txt">${lt}. ${eH(tx)}</div></div>`;
+        }).join('');
+        if(q.feedback) body+=`<div class="gf-feedback" style="background:#D1FAE5;color:#065F46">✓ Feedback: ${eH(q.feedback)}</div>`;
+      } else {
+        body+='<input class="gf-ans-input" placeholder="Your answer here…" readonly>';
+        if(q.feedback) body+=`<div class="gf-feedback" style="background:#DBEAFE;color:#1E40AF">Model Answer: ${eH(q.feedback)}</div>`;
+      }
+      div.innerHTML=`<button class="gf-del" onclick="delItem(${fi})">✕</button>
+        <div class="gf-qnum">Question ${qNum}</div>
+        <div class="gf-qtxt">${eH(q.text||'(no question text)')} <span class="gf-req">*</span></div>${body}`;
+      cont.appendChild(div);
+    }
+  });
 }
 
-// On blur: trim, finalise, rebuild panel
-function renameCrop(id, value) {
-  const crop = getCrop(id);
-  if(crop) {
-    crop.label = value.trim() || `Crop ${id}`;
-    drawOverlay();
-    updateCropsPanel();
-  }
+// ═══════════════════════════════════════════════════════
+// STEP 5 — EXPORT
+// ═══════════════════════════════════════════════════════
+function goExport(){
+  document.getElementById('script-out').textContent=genScript();
+  showSection(5);
+}
+function genScript(){
+  const title=document.getElementById('form-title')?.value||'Science Worksheet';
+  const imgItems=S.formItems.filter(i=>i.type==='image');
+  const lines=S.formItems.map((item,fi)=>{
+    if(item.type==='image'){
+      return`\n  // ══ IMAGE BLOCK: "${jse(item.label)}" ══\n  // Google Forms API does not support programmatic image insertion.\n  // After running this script, open the Form editor and manually add this image.\n  // → Insert a section break or description here as a placeholder:\n  {\n    var imgPlaceholder${fi} = form.addSectionHeaderItem();\n    imgPlaceholder${fi}.setTitle("[IMAGE: ${jse(item.label)}]");\n    imgPlaceholder${fi}.setHelpText("Replace this placeholder with the image '${jse(item.label)}' in the Form editor.");\n  }`;
+    }
+    const q=S.questions[item.qIdx];if(!q) return'';
+    const i=fi;
+    if(q.type==='mcq'){
+      const ci=q.options.findIndex(o=>{const lt=o.match(/^([A-D1-4])[.)]/)?.[1];return lt===q.correctAnswer||o===q.correctAnswer;});
+      return`\n  // ── Q${q.number} (MCQ) ${q.image?'[has image — add manually]':''} ──\n  {\n    var item${i}=form.addMultipleChoiceItem();\n    item${i}.setTitle("${jse(q.text)}");\n    item${i}.setRequired(true);\n    item${i}.setChoices([\n${q.options.map((o,oi)=>{const tx=o.replace(/^[A-D1-4][.)]\s*/,'');return`      item${i}.createChoice("${jse(tx)}",${oi===ci})`;}).join(',\n')}\n    ]);\n    item${i}.setFeedbackForCorrect(FormApp.createFeedback().setText("${jse(q.feedback||'Correct!')}").build());\n    item${i}.setFeedbackForIncorrect(FormApp.createFeedback().setText("${jse(q.feedback||'Review this question.')}").build());\n    item${i}.setPoints(1);\n  }`;
+    } else {
+      return`\n  // ── Q${q.number} (Open-Ended) ${q.image?'[has image — add manually]':''} ──\n  {\n    var item${i}=form.addParagraphTextItem();\n    item${i}.setTitle("${jse(q.text)}");\n    item${i}.setRequired(true);\n    item${i}.setHelpText("${jse(q.feedback?'Model Answer: '+q.feedback:'')}");  \n  }`;
+    }
+  }).join('\n');
+
+  return`// ══════════════════════════════════════════════════════════
+// Google Apps Script — Science Form Builder
+// Generated: ${new Date().toLocaleString('en-SG',{timeZone:'Asia/Singapore'})}
+// Form: ${title}
+// Total items: ${S.formItems.length} (${S.questions.length} question(s), ${imgItems.length} image placeholder(s))
+// ══════════════════════════════════════════════════════════
+//
+// HOW TO USE:
+//   1. Go to https://script.google.com → New project
+//   2. Paste this entire script, replacing any existing code
+//   3. Click ▶ Run → select createForm() → Authorize → Run again
+//   4. Find your new form in Google Drive
+//   5. Open the form editor and replace any [IMAGE: ...] placeholders
+//      with the actual images you extracted in Step 3
+//
+// ══════════════════════════════════════════════════════════
+
+function createForm() {
+  var form = FormApp.create("${jse(title)}");
+  form.setIsQuiz(true);
+  form.setCollectEmail(false);
+  form.setShowLinkToRespondAgain(true);
+  form.setPublishingSummary(true);
+  form.setDescription("Generated by Science Form Builder · ${S.questions.length} question(s)");
+${lines}
+
+  // ── Complete ──
+  var url = form.getPublishedUrl();
+  var editUrl = form.getEditUrl();
+  Logger.log("✅ Form created: " + url);
+  Logger.log("✏️  Edit URL: " + editUrl);
+  Browser.msgBox("✅ Form Created!", "View:\\n" + url + "\\n\\nEdit:\\n" + editUrl, Browser.Buttons.OK);
+}`;
 }
 
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function jse(s){return String(s||'').replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'');}
+function copyScript(){
+  navigator.clipboard.writeText(document.getElementById('script-out').textContent).then(()=>{
+    const b=document.getElementById('copy-btn');b.textContent='✓ Copied!';b.style.background='var(--green)';b.style.color='#fff';
+    setTimeout(()=>{b.textContent='📋 Copy';b.style.background='';b.style.color='';},2200);
+  });
+}
+function dlScript(){
+  const t=document.getElementById('script-out').textContent;
+  const n=(document.getElementById('form-title')?.value||'science-form').replace(/\s+/g,'-').toLowerCase();
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/plain'}));a.download=n+'.gs';a.click();
 }
 
-// ── Auto Detect Figures ──
-async function autoDetectCrops() {
-  if (!pdfDoc) { showToast('Upload a PDF first'); return; }
-  const btn = document.getElementById('autodetect-btn');
-  const orig = btn.innerHTML;
-  btn.innerHTML = '<span class="spin">⟳</span> Analysing…';
-  btn.disabled = true;
-  await new Promise(r => setTimeout(r, 40));
-
-  try {
-    const W = pdfCanvas.width, H = pdfCanvas.height;
-    const { data } = pdfCanvas.getContext('2d').getImageData(0, 0, W, H);
-
-    // ── 1. Per-row pixel statistics ──
-    const rowDensity  = new Float32Array(H);
-    const rowMaxRun   = new Int32Array(H);
-    const rowHasColor = new Uint8Array(H);
-
-    for (let y = 0; y < H; y++) {
-      let nw = 0, run = 0, mx = 0;
-      for (let x = 0; x < W; x++) {
-        const i = (y * W + x) * 4;
-        const r = data[i], g = data[i+1], b = data[i+2];
-        if (0.299*r + 0.587*g + 0.114*b < 238) {
-          nw++; if (++run > mx) mx = run;
-          if (Math.max(r,g,b) - Math.min(r,g,b) > 25) rowHasColor[y] = 1;
-        } else { run = 0; }
-      }
-      rowDensity[y] = nw / W;
-      rowMaxRun[y]  = mx;
-    }
-
-    // ── 2. Adaptive run-length ceiling ──
-    // The most frequent long run in the page is the outer question-box / table border.
-    // Diagram-scale runs must be shorter than that dominant border line.
-    const ABS_MIN_RUN = Math.floor(W * 0.10);
-    const hist = new Int32Array(W + 1);
-    for (let y = 0; y < H; y++) if (rowMaxRun[y] >= ABS_MIN_RUN) hist[rowMaxRun[y]]++;
-
-    let dominantRun = W, dominantPeak = 0;
-    for (let l = ABS_MIN_RUN; l <= W; l++) {
-      const s = (hist[l-2]||0)+(hist[l-1]||0)+hist[l]+(hist[l+1]||0)+(hist[l+2]||0);
-      if (s > dominantPeak) { dominantPeak = s; dominantRun = l; }
-    }
-    const MAX_RUN = Math.floor(dominantRun * 0.80);
-    const MIN_RUN = ABS_MIN_RUN;
-
-    // ── 3. Rolling background density ──
-    const BG_WIN = 120;
-    const bgDensity = new Float32Array(H);
-    {
-      let sum = 0, lo = 0, hi = 0;
-      while (hi < Math.min(BG_WIN, H)) sum += rowDensity[hi++];
-      for (let y = 0; y < H; y++) {
-        bgDensity[y] = sum / (hi - lo);
-        if (hi < H)  sum += rowDensity[hi++];
-        if (y >= BG_WIN) sum -= rowDensity[lo++];
-      }
-    }
-
-    // ── 4. Classify each row ──
-    // STRONG (2): dense visual content — hatching, fills, complex drawings
-    // MODERATE (1): diagram-scale structural line or saturated colour
-    const ABS_THRESH = 0.15;
-    const REL_FACTOR = 2.8, REL_MIN = 0.08;
-
-    const cand = new Uint8Array(H);
-    for (let y = 0; y < H; y++) {
-      const d = rowDensity[y], bg = bgDensity[y];
-      if (d > ABS_THRESH || (d > REL_MIN && d > bg * REL_FACTOR)) {
-        cand[y] = 2;
-      } else if ((rowMaxRun[y] >= MIN_RUN && rowMaxRun[y] <= MAX_RUN) || rowHasColor[y]) {
-        cand[y] = 1;
-      }
-    }
-
-    // ── 5. Zone expansion ──
-    const zone = new Uint8Array(H);
-    for (let y = 0; y < H; y++) {
-      if (!cand[y]) continue;
-      const exp = cand[y] === 2 ? 50 : 15;
-      const lo = Math.max(0, y - exp), hi = Math.min(H, y + exp + 1);
-      for (let yy = lo; yy < hi; yy++) if (rowDensity[yy] > 0.003) zone[yy] = 1;
-    }
-
-    // ── 6. Bridge sparse interiors between candidate rows ──
-    // Joins graph top-axis and bottom-axis into one block even when the interior is almost empty.
-    const BRIDGE_GAP = 200;
-    let lastCandY = -1;
-    for (let y = 0; y < H; y++) {
-      if (cand[y]) {
-        if (lastCandY >= 0 && y - lastCandY <= BRIDGE_GAP) {
-          for (let yy = lastCandY; yy <= y; yy++) if (rowDensity[yy] > 0.002) zone[yy] = 1;
-        }
-        lastCandY = y;
-      }
-    }
-
-    // ── 7. Find contiguous blocks ──
-    const MIN_H = 45;
-    const blocks = [];
-    let inBlk = false, bStart = 0;
-    for (let y = 0; y <= H; y++) {
-      if (y < H && zone[y] && !inBlk)   { inBlk = true; bStart = y; }
-      if ((y >= H || !zone[y]) && inBlk) {
-        inBlk = false;
-        if (y - bStart >= MIN_H) blocks.push({ y1: bStart, y2: y });
-      }
-    }
-
-    // ── 8. Quality filter ──
-    // strongRows    : rows with dense visual content
-    // anchorRows    : rows with a diagram-scale run
-    // anchorPerPx   : low = graph (few axis lines), high = table (many row-lines)
-    // avgD          : average density — text ~8–12%, sparse graph interior much lower
-    const figures = blocks.filter(b => {
-      const h = b.y2 - b.y1;
-      let strongRows = 0, anchorRows = 0, colorRows = 0, sumD = 0, maxD = 0;
-      for (let y = b.y1; y < b.y2; y++) {
-        if (cand[y] === 2) strongRows++;
-        if (rowMaxRun[y] >= MIN_RUN && rowMaxRun[y] <= MAX_RUN) anchorRows++;
-        if (rowHasColor[y]) colorRows++;
-        if (rowDensity[y] > maxD) maxD = rowDensity[y];
-        sumD += rowDensity[y];
-      }
-      const avgD = sumD / h;
-      const anchorPerPx = anchorRows / h;
-
-      // A: dense visual content (hatching, apparatus, illustrations)
-      if (strongRows >= 2) return true;
-      // B: structural diagram lines, tall block, NOT table-dense, NOT plain text
-      if (anchorRows >= 1 && h >= 55 && anchorPerPx < 0.035 && avgD < 0.11) return true;
-      // C: coloured diagram
-      if (colorRows >= 4 && h >= 40) return true;
-      return false;
-    });
-
-    if (!figures.length) {
-      showToast('No figures detected — try drawing crops manually');
-      return;
-    }
-
-    // ── 9. Create full-width crops ──
-    const PAD = 10;
-    let added = 0;
-    for (const f of figures) {
-      const y = Math.max(0, f.y1 - PAD);
-      const h = Math.min(H, f.y2 + PAD) - y;
-      if (h > 20) { createCrop(0, y, W, h); added++; }
-    }
-    drawOverlay(); updateCropsPanel();
-    showToast(`Detected ${added} figure${added !== 1 ? 's' : ''} — review & edit as needed`);
-
-  } catch (err) {
-    showToast('Detection error: ' + err.message);
-    console.error(err);
-  } finally {
-    btn.innerHTML = orig;
-    btn.disabled = false;
-  }
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function eH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+let _tt;
+function showToast(msg){
+  const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
+  clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),2500);
 }
 
-// ── Keyboard shortcuts ──
-document.addEventListener('keydown', e => {
-  if(e.target.tagName === 'INPUT') return;
-  if((e.key === 'Delete' || e.key === 'Backspace') && selectedId) deleteCrop(selectedId);
-  if(e.key === 'ArrowLeft')  changePage(-1);
-  if(e.key === 'ArrowRight') changePage(1);
-  if((e.key === '+' || e.key === '=') && !e.ctrlKey && !e.metaKey) changeZoom(0.25);
-  if(e.key === '-' && !e.ctrlKey && !e.metaKey) changeZoom(-0.25);
-  if(e.key === 'Escape') { selectedId = null; drawOverlay(); updateCropsPanel(); }
-  if(e.key === 'f' || e.key === 'F') snapAllToFullWidth();
-  if(e.key === 'e' || e.key === 'E') exportAllCrops();
-  if(e.key === 'a' || e.key === 'A') autoDetectCrops();
+// Wire image extractor events after DOM ready
+window.addEventListener('load',()=>{
+  ieWire();
+  // keyboard shortcuts for image extractor
+  document.addEventListener('keydown',e=>{
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+    if(document.getElementById('sec-3').classList.contains('visible')){
+      if(e.key==='ArrowLeft') ieChangePage(-1);
+      if(e.key==='ArrowRight') ieChangePage(1);
+      if(e.key==='+'||e.key==='=') ieZoom(.2);
+      if(e.key==='-') ieZoom(-.2);
+      if(e.key==='a'||e.key==='A') ieAutoDetect();
+      if(e.key==='f'||e.key==='F') ieSnapAll();
+      if((e.key==='Delete'||e.key==='Backspace')&&ieSel) ieDelete(ieSel);
+    }
+  });
 });
-
-// ── Toast ──
-let toastTimer;
-function showToast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
-}
-
-// ── Init ──
-updateUI();
 </script>
 </body>
 </html>
